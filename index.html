@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamLink Pro</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' style='stop-color:%236366f1;stop-opacity:1' /><stop offset='100%' style='stop-color:%23a855f7;stop-opacity:1' /></linearGradient></defs><rect width='100' height='100' rx='20' fill='url(%23g)'/><path d='M30 35 L70 35 L70 55 L45 55 L30 70 Z' fill='white'/><circle cx='40' cy='45' r='3' fill='url(%23g)'/><circle cx='50' cy='45' r='3' fill='url(%23g)'/><circle cx='60' cy='45' r='3' fill='url(%23g)'/></svg>">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            background-color: transparent !important; /* Critical for OBS Browser Source */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            color: #f8fafc;
+            overflow: hidden;
+        }
+        /* Custom scrollbar for dashboard */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Overlay text shadow to ensure visibility on any stream background */
+        .obs-text-shadow {
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9), 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.13.0",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.39.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+    <div id="root"></div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyBg81E3YQ2Do2gASMg8WRMBiuUHO7GtSAo",
+          authDomain: "streamlink-pro.firebaseapp.com",
+          databaseURL: "https://streamlink-pro-default-rtdb.europe-west1.firebasedatabase.app",
+          projectId: "streamlink-pro",
+          storageBucket: "streamlink-pro.firebasestorage.app",
+          messagingSenderId: "24197361551",
+          appId: "1:24197361551:web:cb11475b053efe4f3b65fa",
+          measurementId: "G-VBG329NSYF"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        window.send = function() {
+            const val = document.getElementById('msg').value;
+            set(ref(db, 'currentComment'), {
+                text: val,
+                timestamp: Date.now()
+            });
+        };
+    </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>

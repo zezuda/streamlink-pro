@@ -1,0 +1,8 @@
+{
+  "name": "StreamLink Pro - Multi-Stream Chat Hub",
+  "description": "A high-performance dashboard for streamers to aggregate Twitch and YouTube chats, feature comments on-stream via an OBS overlay, and manage live interactions with Gemini-powered insights.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
