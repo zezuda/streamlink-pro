@@ -35,17 +35,18 @@ interface DashboardProps {
 const QUOTA_LIMIT = 10000;
 
 const NumericCountdown: React.FC<{ duration: number; enabled: boolean; featuredAt?: number }> = ({ duration, enabled, featuredAt }) => {
-  const [timeLeft, setTimeLeft] = useState(duration);
+  const [percentage, setPercentage] = useState(100);
 
   useEffect(() => {
     if (!enabled || duration <= 0 || !featuredAt) return;
 
     const interval = setInterval(() => {
       const now = Date.now();
-      const elapsed = Math.floor((now - featuredAt) / 1000);
-      const remaining = Math.max(0, duration - elapsed);
-      setTimeLeft(remaining);
-    }, 100);
+      const elapsed = now - featuredAt;
+      const total = duration * 1000;
+      const remaining = Math.max(0, 100 - (elapsed / total) * 100);
+      setPercentage(remaining);
+    }, 50);
 
     return () => clearInterval(interval);
   }, [duration, enabled, featuredAt]);
@@ -53,11 +54,11 @@ const NumericCountdown: React.FC<{ duration: number; enabled: boolean; featuredA
   if (!enabled || !featuredAt) return null;
 
   return (
-    <div className="flex items-center gap-1.5 px-3 py-1 bg-indigo-500/20 border border-indigo-500/30 rounded-full">
-      <Clock size={12} className="text-indigo-400 animate-pulse" />
-      <span className="text-[10px] font-black text-indigo-300 uppercase tracking-widest">
-        Auto-dismiss in {timeLeft}s
-      </span>
+    <div className="relative overflow-hidden flex items-center gap-1.5 px-3 py-1 bg-indigo-500/20 border border-indigo-500/30 rounded-full w-full">
+      <div 
+        className="absolute inset-y-0 left-0 bg-indigo-500/40 transition-all duration-75 ease-linear"
+        style={{ width: `${percentage}%` }}
+      />
     </div>
   );
 };
@@ -94,7 +95,7 @@ const StatusIndicator: React.FC<{ platform: string, stats: StreamStats, icon: Re
         <>
           <span className="text-white font-mono font-bold text-xl">{stats.viewers}</span>
           <span className={`${isOnline ? 'text-emerald-500' : isConnecting ? 'text-indigo-400' : 'text-slate-600'} text-[9px] font-bold uppercase tracking-widest`}>
-            {stats.status}
+            {stats.status === 'online' ? 'connected' : stats.status}
           </span>
         </>
       )}
@@ -316,7 +317,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         </div>
                         
                         {/* Numeric Countdown Display */}
-                        <div className="mt-4">
+                        <div className="mt-4 w-full">
                           <NumericCountdown 
                             duration={state.settings.autoDismissSeconds} 
                             enabled={state.settings.autoDismissEnabled} 

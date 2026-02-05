@@ -160,10 +160,6 @@ const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage }) =>
                 </span>
               </div>
 
-              {/* Countdown badge in overlay */}
-              {timing.duration > 0 && (
-                <NumericCountdown duration={timing.duration} featuredAt={timing.featuredAt} />
-              )}
             </div>
 
             <div className="relative pl-1">
