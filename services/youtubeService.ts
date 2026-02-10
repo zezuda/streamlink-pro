@@ -7,26 +7,30 @@ export class YouTubeChatClient {
   private onMessage: (msg: ChatMessage) => void;
   private onStatusChange: (status: 'online' | 'error', error?: string) => void;
   private onQuotaUpdate: (units: number) => void;
+  private onStatsUpdate?: (stats: { viewers: number }) => void;
   private liveChatId: string | null = null;
   private nextPollToken: string | null = null;
-  private pollInterval: number = 2000;
+  private pollInterval: number = 10000; // Increased to 10s for quota optimization
   private timer: any = null;
+  private statsTimer: any = null;
   private isPaused: boolean = false;
   private isQuotaExceeded: boolean = false;
 
   constructor(
-    apiKey: string, 
-    videoId: string, 
+    apiKey: string,
+    videoId: string,
     onMessage: (msg: ChatMessage) => void,
     onStatusChange: (status: 'online' | 'error', error?: string) => void,
-    onQuotaUpdate: (units: number) => void
+    onQuotaUpdate: (units: number) => void,
+    onStatsUpdate?: (stats: { viewers: number }) => void
   ) {
     this.apiKey = apiKey;
     this.videoId = this.extractVideoId(videoId);
     this.onMessage = onMessage;
     this.onStatusChange = onStatusChange;
     this.onQuotaUpdate = onQuotaUpdate;
-    
+    this.onStatsUpdate = onStatsUpdate;
+
     document.addEventListener('visibilitychange', this.handleVisibilityChange);
   }
 
@@ -34,10 +38,12 @@ export class YouTubeChatClient {
     if (document.visibilityState === 'hidden') {
       this.isPaused = true;
       if (this.timer) clearTimeout(this.timer);
+      if (this.statsTimer) clearTimeout(this.statsTimer);
     } else {
       this.isPaused = false;
       if (this.liveChatId && !this.isQuotaExceeded) {
         this.poll();
+        this.pollStats();
       }
     }
   };
@@ -55,7 +61,7 @@ export class YouTubeChatClient {
         if (trimmed.includes('youtu.be')) return url.pathname.slice(1);
         return url.searchParams.get('v') || trimmed;
       }
-    } catch (e) {}
+    } catch (e) { }
     return trimmed;
   }
 
@@ -65,13 +71,13 @@ export class YouTubeChatClient {
       this.onStatusChange('error', 'Missing API Key or Video ID');
       return;
     }
-    
+
     try {
       // videos.list = 1 unit
       const videoResp = await fetch(`https://www.googleapis.com/youtube/v3/videos?id=${this.videoId}&part=liveStreamingDetails,snippet&key=${this.apiKey}`);
       this.onQuotaUpdate(1);
       const videoData = await videoResp.json();
-      
+
       if (videoData.error) {
         if (videoData.error.code === 403) {
           this.isQuotaExceeded = true;
@@ -86,7 +92,7 @@ export class YouTubeChatClient {
 
       const item = videoData.items[0];
       this.liveChatId = item.liveStreamingDetails?.activeLiveChatId;
-      
+
       if (!this.liveChatId) {
         throw new Error('No active live chat found.');
       }
@@ -100,6 +106,31 @@ export class YouTubeChatClient {
 
   private startPolling() {
     this.poll();
+    this.pollStats();
+  }
+
+  private async pollStats() {
+    if (this.isPaused || this.isQuotaExceeded) return;
+
+    try {
+      // videos.list = 1 unit
+      // We poll stats every 60s to save quota
+      const videoResp = await fetch(`https://www.googleapis.com/youtube/v3/videos?id=${this.videoId}&part=liveStreamingDetails&key=${this.apiKey}`);
+      this.onQuotaUpdate(1);
+      const videoData = await videoResp.json();
+
+      if (videoData.items && videoData.items.length > 0) {
+        const details = videoData.items[0].liveStreamingDetails;
+        const viewers = parseInt(details?.concurrentViewers || '0', 10);
+        if (this.onStatsUpdate) this.onStatsUpdate({ viewers });
+      } else {
+      }
+
+      this.statsTimer = setTimeout(() => this.pollStats(), 60000);
+    } catch (e) {
+      console.error('[YouTube Stats] Error polling:', e);
+      this.statsTimer = setTimeout(() => this.pollStats(), 60000);
+    }
   }
 
   private async poll() {
@@ -120,16 +151,17 @@ export class YouTubeChatClient {
       const data = await resp.json();
 
       if (data.error) {
-         if (data.error.code === 403) {
-            this.isQuotaExceeded = true;
-            this.onStatusChange('error', 'API Quota Exceeded');
-            return;
-         }
-         throw new Error(data.error.message);
+        if (data.error.code === 403) {
+          this.isQuotaExceeded = true;
+          this.onStatusChange('error', 'API Quota Exceeded');
+          return;
+        }
+        throw new Error(data.error.message);
       }
 
       this.nextPollToken = data.nextPageToken;
-      this.pollInterval = Math.max(data.pollingIntervalMillis || 2000, 2000);
+      // Enforce minimum 10s poll to save quota, unless API says longer
+      this.pollInterval = Math.max(data.pollingIntervalMillis || 10000, 10000);
 
       if (data.items) {
         data.items.forEach((item: any) => {
@@ -153,12 +185,13 @@ export class YouTubeChatClient {
       }
     } catch (e: any) {
       this.onStatusChange('error', e.message);
-      this.timer = setTimeout(() => this.poll(), 10000);
+      this.timer = setTimeout(() => this.poll(), 20000); // Backoff on error
     }
   }
 
   disconnect() {
     if (this.timer) clearTimeout(this.timer);
+    if (this.statsTimer) clearTimeout(this.statsTimer);
     document.removeEventListener('visibilitychange', this.handleVisibilityChange);
   }
 }

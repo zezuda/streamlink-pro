@@ -32,6 +32,8 @@ export interface AppSettings {
   fontSize: number;
   autoDismissEnabled: boolean;
   autoDismissSeconds: number;
+  twitchAccessToken?: string;
+  twitchClientId?: string;
 }
 
 export interface AppState {

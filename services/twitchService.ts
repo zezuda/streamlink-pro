@@ -1,50 +1,155 @@
-
 import { ChatMessage } from "../types";
 
 export class TwitchChatClient {
   private socket: WebSocket | null = null;
   private channel: string;
+  private accessToken?: string;
+  private clientId?: string;
   private onMessage: (msg: ChatMessage) => void;
+  private onStatsUpdate?: (stats: { viewers: number }) => void;
+  private onStatusChange?: (status: 'online' | 'error' | 'connecting', error?: string) => void;
+  private statsTimer: any = null;
 
-  constructor(channel: string, onMessage: (msg: ChatMessage) => void) {
+  // Resilience state
+  private reconnectAttempts = 0;
+  private reconnectTimer: any = null;
+  private maxReconnectAttempts = 10;
+  private isDisconnecting = false;
+
+  constructor(
+    channel: string,
+    onMessage: (msg: ChatMessage) => void,
+    onStatsUpdate?: (stats: { viewers: number }) => void,
+    accessToken?: string,
+    clientId?: string,
+    onStatusChange?: (status: 'online' | 'error' | 'connecting', error?: string) => void
+  ) {
     this.channel = channel.toLowerCase();
     this.onMessage = onMessage;
+    this.onStatsUpdate = onStatsUpdate;
+    this.accessToken = accessToken;
+    this.clientId = clientId;
+    this.onStatusChange = onStatusChange;
   }
 
   connect() {
-    this.socket = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
+    this.isDisconnecting = false;
+    this.clearTimers();
 
-    this.socket.onopen = () => {
-      this.socket?.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
-      this.socket?.send('PASS SCHRODINGER'); // Anonymous
-      this.socket?.send('NICK justinfan' + Math.floor(Math.random() * 10000));
-      this.socket?.send(`JOIN #${this.channel}`);
-      console.log(`Connected to Twitch channel: ${this.channel}`);
-    };
+    if (this.onStatusChange) this.onStatusChange('connecting');
 
-    this.socket.onmessage = (event) => {
-      const data = event.data as string;
-      
-      // Keep-alive
-      if (data.startsWith('PING')) {
-        this.socket?.send('PONG :tmi.twitch.tv');
-        return;
+    try {
+      // Use standard wss URL
+      this.socket = new WebSocket('wss://irc-ws.chat.twitch.tv:443');
+
+      this.socket.onopen = () => {
+        this.reconnectAttempts = 0; // Reset on success
+
+        // Hardened handshake order: PASS -> NICK -> CAP REQ -> JOIN
+        this.socket?.send('PASS SCHRODINGER');
+        this.socket?.send('NICK justinfan' + Math.floor(Math.random() * 10000));
+        this.socket?.send('CAP REQ :twitch.tv/tags twitch.tv/commands');
+        this.socket?.send(`JOIN #${this.channel}`);
+
+        if (this.onStatusChange) this.onStatusChange('online');
+
+        if (this.accessToken && this.clientId) {
+          this.pollStats();
+        }
+      };
+
+      this.socket.onmessage = (event) => {
+        const data = event.data as string;
+        if (data.startsWith('PING')) {
+          this.socket?.send('PONG :tmi.twitch.tv');
+          return;
+        }
+        if (data.includes('PRIVMSG')) {
+          const msg = this.parseTwitchMessage(data);
+          if (msg) this.onMessage(msg);
+        }
+      };
+
+      this.socket.onerror = (err) => {
+        // Minimal error logging for user
+        if (this.onStatusChange) this.onStatusChange('error', 'Connection failed. Retrying...');
+        this.handleReconnect();
+      };
+
+      this.socket.onclose = () => {
+        if (!this.isDisconnecting) {
+          this.handleReconnect();
+        }
+      };
+
+    } catch (e: any) {
+      if (this.onStatusChange) this.onStatusChange('error', e.message);
+      this.handleReconnect();
+    }
+  }
+
+  private handleReconnect() {
+    if (this.isDisconnecting || this.reconnectAttempts >= this.maxReconnectAttempts) {
+      if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+        if (this.onStatusChange) this.onStatusChange('error', 'Cound not connect after multiple attempts.');
+      }
+      return;
+    }
+
+    this.reconnectAttempts++;
+    // Exponential backoff: 1s, 2s, 4s, 8s, up to 30s
+    const delay = Math.min(30000, Math.pow(2, this.reconnectAttempts) * 1000);
+
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = setTimeout(() => {
+      this.connect();
+    }, delay);
+  }
+
+  private clearTimers() {
+    if (this.statsTimer) clearTimeout(this.statsTimer);
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+  }
+
+  private async pollStats() {
+    if (!this.accessToken || !this.clientId) return;
+
+    try {
+      const resp = await fetch(`https://api.twitch.tv/helix/streams?user_login=${this.channel}&t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Client-ID': this.clientId,
+          'Authorization': `Bearer ${this.accessToken}`
+        }
+      });
+
+      if (!resp.ok) return;
+
+      const data = await resp.json();
+
+      if (data.data && data.data.length > 0) {
+        const viewers = data.data[0].viewer_count;
+        if (this.onStatsUpdate) this.onStatsUpdate({ viewers });
+      } else {
+        if (this.onStatsUpdate) this.onStatsUpdate({ viewers: 0 });
       }
 
-      // Parse PRIVMSG
-      if (data.includes('PRIVMSG')) {
-        const msg = this.parseTwitchMessage(data);
-        if (msg) this.onMessage(msg);
-      }
-    };
-
-    this.socket.onclose = () => {
-      console.log('Twitch WebSocket closed');
-    };
+      this.statsTimer = setTimeout(() => this.pollStats(), 10000);
+    } catch (e) {
+      this.statsTimer = setTimeout(() => this.pollStats(), 10000);
+    }
   }
 
   disconnect() {
-    this.socket?.close();
+    this.isDisconnecting = true;
+    this.clearTimers();
+    if (this.socket) {
+      // Only close if it's not already closing or closed
+      if (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING) {
+        this.socket.close();
+      }
+      this.socket = null;
+    }
   }
 
   private parseTwitchMessage(raw: string): ChatMessage | null {
@@ -81,7 +186,6 @@ export class TwitchChatClient {
         authorColor: tags['color'] || '#9146FF'
       };
     } catch (e) {
-      console.error("Error parsing Twitch message", e);
       return null;
     }
   }

@@ -3,23 +3,9 @@ import React, { useEffect, useState, useRef } from 'react';
 import { ChatMessage } from '../types';
 import { Youtube, Twitch as TwitchIcon, Clock } from 'lucide-react';
 
-// Firebase imports for real-time cloud sync
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyBg81E3YQ2Do2gASMg8WRMBiuUHO7GtSAo",
-  authDomain: "streamlink-pro.firebaseapp.com",
-  databaseURL: "https://streamlink-pro-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "streamlink-pro",
-  storageBucket: "streamlink-pro.firebasestorage.app",
-  messagingSenderId: "24197361551",
-  appId: "1:24197361551:web:cb11475b053efe4f3b65fa",
-  measurementId: "G-VBG329NSYF"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+// Firebase imports from npm
+import { ref, onValue } from 'firebase/database';
+import { db } from '@/src/firebase';
 
 interface OverlayProps {
   featuredMessage: ChatMessage | null;
@@ -61,7 +47,7 @@ const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage }) =>
     duration: 0,
     featuredAt: null
   });
-  
+
   const fadeTimeoutRef = useRef<number | null>(null);
 
   const performInwardTransition = (msg: ChatMessage, duration: number, featuredAt: number | null) => {
@@ -87,7 +73,7 @@ const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage }) =>
       } else {
         performInwardTransition(newMsg, duration, featuredAt);
       }
-    } 
+    }
     else {
       setIsVisible(false);
       if (fadeTimeoutRef.current) window.clearTimeout(fadeTimeoutRef.current);
@@ -103,8 +89,8 @@ const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage }) =>
       const data = snapshot.val();
       setIsCloudSynced(true);
 
-      const incoming = (data && data.type === 'SET_FEATURED' && data.payload) 
-        ? { ...data.payload, timestamp: new Date(data.payload.timestamp) } 
+      const incoming = (data && data.type === 'SET_FEATURED' && data.payload)
+        ? { ...data.payload, timestamp: new Date(data.payload.timestamp) }
         : null;
 
       const duration = data?.autoDismissEnabled ? data.autoDismissSeconds : 0;
@@ -126,33 +112,32 @@ const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage }) =>
 
   return (
     <div className="w-full h-full flex items-end justify-start p-16 pointer-events-none overflow-hidden">
-      <div 
-        className={`w-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] transform origin-left ${
-          isVisible && activeMsg 
-            ? 'translate-x-0 opacity-100 scale-100 blur-0' 
-            : '-translate-x-20 opacity-0 scale-95 blur-md'
-        }`}
+      <div
+        className={`w-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] transform origin-left ${isVisible && activeMsg
+          ? 'translate-x-0 opacity-100 scale-100 blur-0'
+          : '-translate-x-20 opacity-0 scale-95 blur-md'
+          }`}
       >
         <div className="relative group flex items-stretch bg-slate-950/90 border border-white/10 rounded-[2rem] shadow-[0_64px_128px_-32px_rgba(0,0,0,0.8)] overflow-hidden w-full">
-          
-          <div 
+
+          <div
             className="w-3 shrink-0 transition-colors duration-500"
             style={{ backgroundColor: platformColor }}
           />
 
           <div className="flex flex-col p-8 space-y-4 flex-1 min-w-0">
             <div className="flex items-center gap-4">
-              <div 
+              <div
                 className="flex items-center justify-center p-2 rounded-xl border border-white/10 bg-white/5 shadow-inner"
               >
                 {isTwitch ? (
                   <TwitchIcon size={20} className="text-[#bf94ff] fill-current" />
                 ) : (
-                  <Youtube size={20} className="text-[#ff4d4d] fill-current" />
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z" fill="#FF0000" /><path d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="white" /></svg>
                 )}
               </div>
               <div className="flex flex-col min-w-0">
-                <span 
+                <span
                   className="text-2xl font-bold tracking-tight uppercase obs-text-shadow leading-none truncate"
                   style={{ color: activeMsg?.authorColor || 'white' }}
                 >
@@ -167,7 +152,7 @@ const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage }) =>
                 {activeMsg?.text}
               </p>
             </div>
-            
+
             {!isCloudSynced && (
               <div className="absolute top-4 right-8 text-[10px] text-white/20 font-mono italic animate-pulse uppercase tracking-[0.2em]">
                 Reconnecting...
@@ -176,10 +161,10 @@ const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage }) =>
           </div>
 
           <div className="shrink-0 p-8 flex items-center bg-white/[0.03] border-l border-white/5">
-            <img 
-              src={activeMsg?.avatarUrl} 
-              alt={activeMsg?.author} 
-              className="w-32 h-32 rounded-[2rem] border-2 border-white/10 shadow-2xl object-cover ring-8 ring-black/40" 
+            <img
+              src={activeMsg?.avatarUrl}
+              alt={activeMsg?.author}
+              className="w-32 h-32 rounded-[2rem] border-2 border-white/10 shadow-2xl object-cover ring-8 ring-black/40"
             />
           </div>
         </div>

@@ -46,11 +46,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2 px-4 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${
-                activeTab === tab.id 
-                  ? 'text-indigo-400 border-indigo-500 bg-indigo-500/5' 
-                  : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-white/5'
-              }`}
+              className={`flex items-center gap-2 px-4 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2 ${activeTab === tab.id
+                ? 'text-indigo-400 border-indigo-500 bg-indigo-500/5'
+                : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-white/5'
+                }`}
             >
               {tab.icon}
               {tab.label}
@@ -68,12 +67,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1">Channel Identifier</label>
-                  <input 
+                  <input
                     type="text"
                     placeholder="e.g. shroud"
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white placeholder:text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-medium"
                     value={formData.twitchChannel}
                     onChange={e => setFormData({ ...formData, twitchChannel: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1">Access Token (Optional - For Viewer Count)</label>
+                  <input
+                    type="password"
+                    placeholder="oauth:..."
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white placeholder:text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-medium"
+                    value={formData.twitchAccessToken || ''}
+                    onChange={e => setFormData({ ...formData, twitchAccessToken: e.target.value })}
                   />
                 </div>
               </div>
@@ -93,7 +102,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
                         <Info size={12} className="text-slate-600" />
                       </span>
                     </label>
-                    <input 
+                    <input
                       type="text"
                       placeholder="e.g. dQw4w9WgXcQ"
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white placeholder:text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-medium"
@@ -104,10 +113,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
                   <div className="space-y-2">
                     <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1 flex justify-between">
                       Google Data API Key
-                      <a href="https://console.cloud.google.com/apis/credentials" target="_blank" className="text-indigo-400 hover:text-indigo-300 transition-colors">Generate Key</a>
+                      <a href="https://console.cloud.google.com/apis/credentials" target="_blank" className="text-indigo-400 hover:text-indigo-300 transition-colors">Google Cloud Console</a>
                     </label>
                     <div className="relative">
-                      <input 
+                      <input
                         type="password"
                         placeholder="AIza..."
                         className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 pl-12 text-white focus:outline-none focus:border-indigo-500 transition-all font-mono text-sm"
@@ -128,7 +137,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
                 <div className="flex items-center gap-2 text-indigo-400 font-black text-xs uppercase tracking-widest">
                   <Clock size={16} /> Auto-Dismiss Features
                 </div>
-                
+
                 <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-6 space-y-6 shadow-inner">
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col gap-1">
@@ -136,8 +145,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
                       <p className="text-[11px] text-slate-500 leading-relaxed max-w-[280px]">Automatically dismisses featured comments after the specified duration.</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         className="sr-only peer"
                         checked={formData.autoDismissEnabled}
                         onChange={e => setFormData({ ...formData, autoDismissEnabled: e.target.checked })}
@@ -154,10 +163,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
                           {formData.autoDismissSeconds}<span className="text-xs ml-0.5 text-slate-600">s</span>
                         </span>
                       </div>
-                      <input 
-                        type="range" 
-                        min="3" 
-                        max="60" 
+                      <input
+                        type="range"
+                        min="3"
+                        max="60"
                         step="1"
                         className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500"
                         value={formData.autoDismissSeconds}
@@ -181,38 +190,24 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
                 <div className="flex items-center gap-2 text-slate-500 font-black text-xs uppercase tracking-widest">
                   <ShieldCheck size={16} /> Debug & Maintenance
                 </div>
-                
+
                 <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-6 space-y-6">
                   <div className="flex items-center justify-between gap-6">
-                     <div className="flex flex-col gap-1">
-                       <span className="text-sm text-slate-200 font-black tracking-tight">Chat Simulation</span>
-                       <p className="text-[11px] text-slate-500 leading-relaxed">Push test messages into the live feed.</p>
-                     </div>
-                     <button 
-                       onClick={onTriggerTest}
-                       className="shrink-0 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-black uppercase tracking-widest rounded-xl border border-slate-700 transition-all active:scale-95 shadow-md"
-                     >
-                       GENERATE FEED
-                     </button>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm text-slate-200 font-black tracking-tight">Chat Simulation</span>
+                      <p className="text-[11px] text-slate-500 leading-relaxed">Push test messages into the live feed.</p>
+                    </div>
+                    <button
+                      onClick={onTriggerTest}
+                      className="shrink-0 px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-black uppercase tracking-widest rounded-xl border border-slate-700 transition-all active:scale-95 shadow-md"
+                    >
+                      GENERATE FEED
+                    </button>
                   </div>
 
                   <div className="h-px bg-slate-800/50" />
 
-                  <div className="space-y-4">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-sm text-slate-200 font-black tracking-tight">Manual Quota Sync</span>
-                      <p className="text-[11px] text-slate-500 leading-relaxed">Override the estimated API consumption count.</p>
-                    </div>
-                    <div className="relative">
-                      <input 
-                        type="number"
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white focus:outline-none focus:border-slate-600 transition-colors font-mono text-sm"
-                        value={manualQuota}
-                        onChange={e => setManualQuota(parseInt(e.target.value, 10) || 0)}
-                      />
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-slate-600 font-black uppercase">Units</div>
-                    </div>
-                  </div>
+
                 </div>
               </div>
             </div>
@@ -221,20 +216,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
 
         <footer className="p-8 bg-slate-950 border-t border-slate-800 flex items-center justify-between">
           <div className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">
-            StreamLink Pro v1.2.4
+            StreamLink Pro v1.1.0
           </div>
           <div className="flex gap-4">
-            <button 
+            <button
               onClick={onClose}
               className="px-6 py-2.5 text-slate-400 hover:text-white font-black text-xs uppercase tracking-widest transition-colors"
             >
-              Discard
+              Cancel
             </button>
-            <button 
+            <button
               onClick={() => onSave(formData, manualQuota)}
               className="flex items-center gap-2 px-8 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-xl shadow-indigo-600/20 transition-all active:scale-95"
             >
-              <Save size={18} /> Apply Changes
+              <Save size={18} /> Save
             </button>
           </div>
         </footer>
