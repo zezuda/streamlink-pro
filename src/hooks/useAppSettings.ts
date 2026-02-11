@@ -9,7 +9,7 @@ const DEFAULT_SETTINGS: AppSettings = {
     youtubeApiKey: import.meta.env.VITE_YOUTUBE_API_KEY || '',
     showAvatars: true,
     fontSize: 14,
-    autoDismissEnabled: false,
+    autoDismissEnabled: true,
     autoDismissSeconds: 15,
 };
 
@@ -22,10 +22,10 @@ export const useAppSettings = () => {
         try {
             const saved = localStorage.getItem('streamlink_settings');
             const parsed = saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
+
             return {
                 ...DEFAULT_SETTINGS,
                 ...parsed,
-                // Always clear video ID on reload if not explicitly saved (logic kept from original App.tsx)
                 youtubeVideoId: ''
             };
         } catch (e) {

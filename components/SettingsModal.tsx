@@ -173,19 +173,46 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
                     </div>
 
                     <div className="grid grid-cols-1 gap-6">
-                      {/* Twitch Access Token */}
-                      <div className="space-y-2">
-                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1 flex items-center gap-2">
-                          <Twitch size={12} className="text-purple-400" />
-                          Twitch Access Token (Optional)
-                        </label>
-                        <input
-                          type="password"
-                          placeholder="oauth:..."
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white placeholder:text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-medium"
-                          value={formData.twitchAccessToken || ''}
-                          onChange={e => setFormData({ ...formData, twitchAccessToken: e.target.value })}
-                        />
+                      {/* Twitch Credentials */}
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1 flex items-center justify-between">
+                            <span className="flex items-center gap-2">
+                              <Twitch size={12} className="text-purple-400" />
+                              Twitch Client ID
+                            </span>
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              placeholder="Client ID..."
+                              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 pl-12 text-white focus:outline-none focus:border-indigo-500 transition-all font-mono text-sm"
+                              value={formData.twitchClientId || ''}
+                              onChange={e => setFormData({ ...formData, twitchClientId: e.target.value })}
+                            />
+                            <ShieldCheck size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1 flex items-center justify-between">
+                            <span className="flex items-center gap-2">
+                              <Twitch size={12} className="text-purple-400" />
+                              Twitch Access Token (Optional)
+                            </span>
+                            <a href="https://dev.twitch.tv/console/apps" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 transition-colors">Twitch Dev Console</a>
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="password"
+                              placeholder="oauth:..."
+                              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 pl-12 text-white focus:outline-none focus:border-indigo-500 transition-all font-mono text-sm"
+                              value={formData.twitchAccessToken || ''}
+                              onChange={e => setFormData({ ...formData, twitchAccessToken: e.target.value })}
+                            />
+                            <Key size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
+                          </div>
+                        </div>
                       </div>
 
                       {/* YouTube API Key */}
@@ -195,7 +222,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
                             <Youtube size={12} className="text-red-500" />
                             Google Data API Key
                           </span>
-                          <a href="https://console.cloud.google.com/apis/credentials" target="_blank" className="text-indigo-400 hover:text-indigo-300 transition-colors">Cloud Console</a>
+                          <a href="https://console.cloud.google.com/apis/credentials" target="_blank" className="text-indigo-400 hover:text-indigo-300 transition-colors">Google Cloud Console</a>
                         </label>
                         <div className="relative">
                           <input

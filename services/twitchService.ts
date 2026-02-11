@@ -114,12 +114,17 @@ export class TwitchChatClient {
   private async pollStats() {
     if (!this.accessToken || !this.clientId) return;
 
+    // Sanitize credentials: trim spaces and remove 'oauth:' prefix for Helix
+    const trimmedToken = this.accessToken.trim();
+    const trimmedClientId = this.clientId.trim();
+    const sanitizedToken = trimmedToken.replace(/^oauth:/i, '');
+
     try {
       const resp = await fetch(`https://api.twitch.tv/helix/streams?user_login=${this.channel}&t=${Date.now()}`, {
         cache: 'no-store',
         headers: {
-          'Client-ID': this.clientId,
-          'Authorization': `Bearer ${this.accessToken}`
+          'Client-ID': trimmedClientId,
+          'Authorization': `Bearer ${sanitizedToken}`
         }
       });
 
@@ -144,8 +149,8 @@ export class TwitchChatClient {
     this.isDisconnecting = true;
     this.clearTimers();
     if (this.socket) {
-      // Only close if it's not already closing or closed
-      if (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING) {
+      // Only close if it's OPEN. Closing in CONNECTING state can trigger browser warnings.
+      if (this.socket.readyState === WebSocket.OPEN) {
         this.socket.close();
       }
       this.socket = null;
