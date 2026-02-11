@@ -48,18 +48,31 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [messageState.featuredMessage, markAsRead]);
 
+  // Keep a ref to settings to access fresh values inside timeouts
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+
   // Auto-dismiss logic
   useEffect(() => {
     if (autoDismissTimerRef.current) {
       window.clearTimeout(autoDismissTimerRef.current);
     }
 
-    if (messageState.featuredMessage && settings.autoDismissEnabled) {
-      autoDismissTimerRef.current = window.setTimeout(() => {
-        if (messageState.featuredMessage) {
-          markAsRead(messageState.featuredMessage.id);
-        }
-      }, settings.autoDismissSeconds * 1000);
+    if (messageState.featuredMessage) {
+      // Determine duration: Use message-specific duration (e.g. donation) or global setting
+      const durationSeconds = messageState.featuredMessage.pinnedDuration || settings.autoDismissSeconds;
+
+      // Only set timer if enabled OR if it's a donation (donations usually have fixed expiry, but let's respect the master toggle)
+      // User asked: "turn off auto-dismissal options... message still gets dismissed".
+      // So if master toggle is off, nothing should auto-dismiss.
+      if (settings.autoDismissEnabled) {
+        autoDismissTimerRef.current = window.setTimeout(() => {
+          // Double check: ensure master toggle is still on and message is still featured
+          if (settingsRef.current.autoDismissEnabled && messageState.featuredMessage) {
+            markAsRead(messageState.featuredMessage.id);
+          }
+        }, durationSeconds * 1000);
+      }
     }
 
     return () => {
@@ -113,6 +126,24 @@ const App: React.FC = () => {
         addMessage(msg);
       }, i * 400);
     }
+  }, [addMessage]);
+
+  const simulateDonation = useCallback((amount: string, color: string, duration: number) => {
+    const msg: ChatMessage = {
+      id: Math.random().toString(36).substring(7),
+      author: "SuperFan_99",
+      text: "Keep up the great work! Here is some support for the stream! 💖",
+      platform: 'youtube',
+      timestamp: new Date(),
+      isRead: false,
+      isFeatured: false,
+      avatarUrl: `https://api.dicebear.com/7.x/identicon/svg?seed=SuperFan_99`,
+      authorColor: color,
+      donationAmount: amount, // e.g. "500 CZK"
+      pinnedDuration: duration,
+      pinnedAt: Date.now()
+    };
+    addMessage(msg);
   }, [addMessage]);
 
   // Merge state for Dashboard
@@ -220,6 +251,7 @@ const App: React.FC = () => {
             setIsSettingsOpen(false);
           }}
           onClose={() => setIsSettingsOpen(false)}
+          onSimulateDonation={simulateDonation}
         />
       )}
     </div>

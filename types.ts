@@ -15,6 +15,9 @@ export interface ChatMessage {
   isFirstMessage?: boolean;
   avatarUrl?: string;
   authorColor?: string;
+  donationAmount?: string;
+  pinnedDuration?: number; // Duration in seconds
+  pinnedAt?: number; // Absolute timestamp when the message was pinned (usually donation time)
 }
 
 export interface StreamStats {

@@ -49,9 +49,20 @@ export const useMessageStore = (settings: { autoDismissEnabled: boolean; autoDis
     const addMessage = useCallback((msg: ChatMessage) => {
         setState(prev => {
             if (prev.messages.some(m => m.id === msg.id)) return prev;
+
+            // Donation Logic: If message has donationAmount, ensure pinnedDuration is set if not already
+            // This logic can be expanded for real defaults based on amount
+            let finalMsg = { ...msg };
+            if (finalMsg.donationAmount && !finalMsg.pinnedDuration) {
+                // Default durations based on amount could go here.
+                // For now, let's say any donation gets 60s if not specified.
+                finalMsg.pinnedDuration = 60;
+                finalMsg.pinnedAt = Date.now();
+            }
+
             return {
                 ...prev,
-                messages: [msg, ...prev.messages].slice(0, 200)
+                messages: [finalMsg, ...prev.messages].slice(0, 200)
             };
         });
     }, []);

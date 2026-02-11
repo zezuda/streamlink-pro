@@ -9,11 +9,12 @@ interface SettingsModalProps {
   onTriggerTest: () => void;
   onSave: (settings: AppSettings, manualQuota?: number) => void;
   onClose: () => void;
+  onSimulateDonation?: (amount: string, color: string, duration: number) => void;
 }
 
 type Tab = 'stream' | 'interaction' | 'dev';
 
-const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, onTriggerTest, onSave, onClose }) => {
+const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, onTriggerTest, onSave, onClose, onSimulateDonation }) => {
   const [formData, setFormData] = useState<AppSettings>(settings);
   const [manualQuota, setManualQuota] = useState<number>(currentQuota);
   const [activeTab, setActiveTab] = useState<Tab>('stream');
@@ -251,6 +252,22 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
                     >
                       GENERATE FEED
                     </button>
+                  </div>
+
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm text-slate-200 font-black tracking-tight">Donation Simulation</span>
+                      <p className="text-[11px] text-slate-500 leading-relaxed">Test different donation tiers.</p>
+                    </div>
+                    {onSimulateDonation && (
+                      <div className="flex gap-2 flex-wrap">
+                        <button onClick={() => onSimulateDonation("50 CZK", "#10B981", 60)} className="flex-1 px-3 py-2 bg-emerald-900/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-black uppercase tracking-wider rounded-lg hover:bg-emerald-900/40 transition-all">50 CZK</button>
+                        <button onClick={() => onSimulateDonation("200 CZK", "#06B6D4", 120)} className="flex-1 px-3 py-2 bg-cyan-900/20 text-cyan-400 border border-cyan-500/30 text-[9px] font-black uppercase tracking-wider rounded-lg hover:bg-cyan-900/40 transition-all">200 CZK</button>
+                        <button onClick={() => onSimulateDonation("500 CZK", "#F59E0B", 300)} className="flex-1 px-3 py-2 bg-amber-900/20 text-amber-400 border border-amber-500/30 text-[9px] font-black uppercase tracking-wider rounded-lg hover:bg-amber-900/40 transition-all">500 CZK</button>
+                        <button onClick={() => onSimulateDonation("1000 CZK", "#A855F7", 600)} className="flex-1 px-3 py-2 bg-purple-900/20 text-purple-400 border border-purple-500/30 text-[9px] font-black uppercase tracking-wider rounded-lg hover:bg-purple-900/40 transition-all">1k CZK</button>
+                        <button onClick={() => onSimulateDonation("2000 CZK", "#EF4444", 1800)} className="flex-1 px-3 py-2 bg-red-900/20 text-red-400 border border-red-500/30 text-[9px] font-black uppercase tracking-wider rounded-lg hover:bg-red-900/40 transition-all">2k CZK</button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

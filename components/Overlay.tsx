@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { ChatMessage } from '../types';
-import { Youtube, Twitch as TwitchIcon, Clock } from 'lucide-react';
+import { Youtube, Twitch as TwitchIcon, Clock, DollarSign } from 'lucide-react';
 
 // Firebase imports from npm
 import { ref, onValue } from 'firebase/database';
@@ -108,7 +108,20 @@ const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage }) =>
   if (!activeMsg && !isVisible) return null;
 
   const isTwitch = activeMsg?.platform === 'twitch';
-  const platformColor = isTwitch ? '#9146FF' : '#FF0000';
+  let platformColor = isTwitch ? '#9146FF' : '#FF0000';
+
+  // Donation Logic for Styling
+  const donationAmount = activeMsg?.donationAmount;
+  const isDonation = !!donationAmount;
+
+  if (isDonation) {
+    const amountVal = parseFloat(donationAmount?.replace(/[^0-9.]/g, '') || '0');
+    if (amountVal >= 2000) platformColor = '#dc26267a'; // Red
+    else if (amountVal >= 1000) platformColor = '#9333ea7a'; // Purple
+    else if (amountVal >= 500) platformColor = '#d977067a'; // Amber
+    else if (amountVal >= 200) platformColor = '#0891b27a'; // Cyan
+    else platformColor = '#0596697a'; // Emerald
+  }
 
   return (
     <div className="w-full h-full flex items-end justify-start p-16 pointer-events-none overflow-hidden">
@@ -118,7 +131,10 @@ const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage }) =>
           : '-translate-x-20 opacity-0 scale-95 blur-md'
           }`}
       >
-        <div className="relative group flex items-stretch bg-slate-950/90 border border-white/10 rounded-[2rem] shadow-[0_64px_128px_-32px_rgba(0,0,0,0.8)] overflow-hidden w-full">
+        <div
+          className={`relative group flex items-stretch border border-white/10 rounded-[2rem] shadow-[0_64px_128px_-32px_rgba(0,0,0,0.8)] overflow-hidden w-full ${!isDonation ? 'bg-slate-950/90' : ''}`}
+          style={isDonation ? { backgroundColor: platformColor } : undefined}
+        >
 
           <div
             className="w-3 shrink-0 transition-colors duration-500"
@@ -128,23 +144,30 @@ const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage }) =>
           <div className="flex flex-col p-8 space-y-4 flex-1 min-w-0">
             <div className="flex items-center gap-4">
               <div
-                className="flex items-center justify-center p-2 rounded-xl border border-white/10 bg-white/5 shadow-inner"
+                className="flex items-center justify-center p-2 rounded-xl border border-white/10 shadow-inner"
+                style={!isDonation ? { backgroundColor: platformColor } : { backgroundColor: '#FF0000' }}
               >
                 {isTwitch ? (
-                  <TwitchIcon size={20} className="text-[#bf94ff] fill-current" />
+                  <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24"><path d="M11.571 4.714h1.715v5.143H11.57V4.714zm4.715 0H18v5.143h-1.714V4.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0H6zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714v9.429z" /></svg>
                 ) : (
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z" fill="#FF0000" /><path d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="white" /></svg>
+                  <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24" fill="none"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z" fill="white" /><path d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="#FF0000" /></svg>
                 )}
               </div>
-              <div className="flex flex-col min-w-0">
-                <span
-                  className="text-2xl font-bold tracking-tight uppercase obs-text-shadow leading-none truncate"
-                  style={{ color: activeMsg?.authorColor || 'white' }}
-                >
-                  {activeMsg?.author}
-                </span>
-              </div>
 
+              <span
+                className="text-2xl font-bold tracking-tight uppercase obs-text-shadow leading-none truncate text-white overflow-visible"
+              >
+                {activeMsg?.author}
+              </span>
+
+              {isDonation && (
+                <span className="ml-auto flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/20 border border-white/10 text-white font-black text-xl tracking-widest shadow-lg">
+                  <span
+                    className="w-2 h-2 rounded-full animate-pulse bg-white"
+                  />
+                  {donationAmount}
+                </span>
+              )}
             </div>
 
             <div className="relative pl-1">
@@ -152,6 +175,7 @@ const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage }) =>
                 {activeMsg?.text}
               </p>
             </div>
+
 
             {!isCloudSynced && (
               <div className="absolute top-4 right-8 text-[10px] text-white/20 font-mono italic animate-pulse uppercase tracking-[0.2em]">
@@ -169,7 +193,8 @@ const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage }) =>
           </div>
         </div>
       </div>
-    </div>
+
+    </div >
   );
 };
 

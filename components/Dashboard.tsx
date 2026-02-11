@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { AppState, ChatMessage, StreamStats } from '../types';
 import MessageItem from './MessageItem';
+import { PinnedMessagesWidget } from './PinnedMessagesWidget';
 import {
   Settings,
   Copy,
@@ -19,7 +20,8 @@ import {
   Bookmark,
   Trash2,
   Keyboard,
-  Clock
+  Clock,
+  Coins
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -167,6 +169,16 @@ const Dashboard: React.FC<DashboardProps> = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleScrollToMessage = (id: string) => {
+    const element = document.getElementById(`message-${id}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Use standard CSS class for highlighting if Tailwind safelist permits, or inline style
+      element.classList.add('ring-2', 'ring-emerald-500');
+      setTimeout(() => element.classList.remove('ring-2', 'ring-emerald-500'), 1000);
+    }
+  };
+
   const unreadCount = state.messages.filter(m => !m.isRead).length;
 
   return (
@@ -286,6 +298,12 @@ const Dashboard: React.FC<DashboardProps> = ({
             </div>
           </div>
 
+          {/* Pinned Donations Widget */}
+          <PinnedMessagesWidget
+            messages={state.messages}
+            onMessageClick={handleScrollToMessage}
+          />
+
           <div className="flex-1 flex flex-col space-y-4">
             <div className="flex justify-between items-center">
               <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
@@ -321,16 +339,23 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <div className="space-y-2">
                     <p className="text-white text-lg font-black leading-tight break-words">"{state.featuredMessage.text}"</p>
                     <p className="text-indigo-400 text-xs font-bold uppercase tracking-widest">@{state.featuredMessage.author}</p>
+                    {state.featuredMessage.donationAmount && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 text-emerald-400 rounded-full text-[10px] font-black uppercase tracking-widest border border-emerald-500/30 mt-1">
+                        <Coins size={10} strokeWidth={3} /> {state.featuredMessage.donationAmount}
+                      </span>
+                    )}
                   </div>
 
                   {/* Numeric Countdown Display */}
-                  <div className="mt-4 w-full">
-                    <NumericCountdown
-                      duration={state.settings.autoDismissSeconds}
-                      enabled={state.settings.autoDismissEnabled}
-                      featuredAt={state.featuredMessage.featuredAt}
-                    />
-                  </div>
+                  {state.settings.autoDismissEnabled && (
+                    <div className="mt-4 w-full">
+                      <NumericCountdown
+                        duration={state.settings.autoDismissSeconds}
+                        enabled={state.settings.autoDismissEnabled}
+                        featuredAt={state.featuredMessage.featuredAt}
+                      />
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="text-slate-600 space-y-3">
@@ -345,8 +370,6 @@ const Dashboard: React.FC<DashboardProps> = ({
               <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,118,0.06))] bg-[length:100%_2px,3px_100%]"></div>
             </div>
           </div>
-
-
         </section>
       </main>
     </div>

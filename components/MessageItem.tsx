@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { ChatMessage } from '../types';
-import { Youtube, CheckCircle, Send, MessageSquareDashed, Sparkles, Bookmark, Trash2, XCircle } from 'lucide-react';
+import { Youtube, CheckCircle, Send, MessageSquareDashed, Sparkles, Bookmark, Trash2, XCircle, Coins } from 'lucide-react';
 
 interface MessageItemProps {
   message: ChatMessage;
@@ -34,17 +34,17 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onFeature, onMarkRea
   };
 
   return (
-    <div className="relative group/container">
+    <div id={`message-${message.id}`} className="relative group/container rounded-xl">
       <button
         onClick={handleClick}
         onContextMenu={handleContextMenu}
         className={`w-full text-left group relative p-4 rounded-xl transition-all border outline-none ring-offset-2 ring-offset-slate-900 ring-indigo-500 focus-visible:ring-2 ${message.isFeatured
-            ? 'bg-indigo-600/30 border-indigo-500 shadow-lg shadow-indigo-500/10 z-10'
-            : message.isRead
-              ? 'bg-slate-900/40 border-slate-800/40 opacity-50'
-              : message.isInteresting
-                ? 'bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20'
-                : 'bg-slate-800/80 border-slate-700/50 hover:bg-slate-800 hover:border-slate-500'
+          ? 'bg-indigo-600/30 border-indigo-500 shadow-lg shadow-indigo-500/10 z-10'
+          : message.isRead
+            ? 'bg-slate-900/40 border-slate-800/40 opacity-50'
+            : message.isInteresting
+              ? 'bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20'
+              : 'bg-slate-800/80 border-slate-700/50 hover:bg-slate-800 hover:border-slate-500'
           }`}
       >
         <div className="flex items-start gap-4">
@@ -96,17 +96,15 @@ const MessageItem: React.FC<MessageItemProps> = ({ message, onFeature, onMarkRea
                 </span>
               )}
 
+              {message.donationAmount && (
+                <span className="flex items-center gap-0.5 text-[8px] font-black bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded uppercase tracking-widest shadow-sm border border-emerald-500/30">
+                  <Coins size={8} strokeWidth={3} /> {message.donationAmount}
+                </span>
+              )}
+
               <span className="text-[9px] text-slate-500 font-mono font-bold tracking-tighter opacity-70">
                 {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
               </span>
-
-              {message.isFeatured && (
-                <div className="ml-auto flex items-center gap-1.5">
-                  <span className="flex items-center gap-1 text-[9px] font-black text-white uppercase tracking-widest bg-indigo-500 px-1.5 py-0.5 rounded shadow-sm animate-pulse">
-                    LIVE
-                  </span>
-                </div>
-              )}
 
               {message.isRead && !message.isFeatured && (
                 <div className="ml-auto flex items-center gap-1">
