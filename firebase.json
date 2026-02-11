@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "streamlink-pro",
     "public": "dist",
     "ignore": [
       "firebase.json",
