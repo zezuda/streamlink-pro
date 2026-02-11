@@ -11,6 +11,8 @@ const DEFAULT_SETTINGS: AppSettings = {
     fontSize: 14,
     autoDismissEnabled: true,
     autoDismissSeconds: 15,
+    showHypeTrain: true,
+    showSubscriptions: true,
 };
 
 const getPTDateString = () => {

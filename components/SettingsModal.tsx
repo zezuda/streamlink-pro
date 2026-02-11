@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { AppSettings } from '../types';
-import { X, Save, Key, Twitch, Youtube, Info, ShieldCheck, Beaker, Clock, Radio, Settings } from 'lucide-react';
+import { X, Save, Key, Twitch, Youtube, Info, ShieldCheck, Beaker, Clock, Radio, Settings, Zap, Star } from 'lucide-react';
 
 interface SettingsModalProps {
   settings: AppSettings;
@@ -10,18 +10,28 @@ interface SettingsModalProps {
   onSave: (settings: AppSettings, manualQuota?: number) => void;
   onClose: () => void;
   onSimulateDonation?: (amount: string, color: string, duration: number) => void;
+  onSimulateHypeTrain?: () => void;
+  onSimulateSubscription?: (plan: string, months: number, isGift: boolean) => void;
 }
 
-type Tab = 'stream' | 'interaction' | 'dev';
+type Tab = 'stream' | 'interaction' | 'api' | 'dev';
 
-const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, onTriggerTest, onSave, onClose, onSimulateDonation }) => {
+const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, onTriggerTest, onSave, onClose, onSimulateDonation, onSimulateHypeTrain, onSimulateSubscription }) => {
   const [formData, setFormData] = useState<AppSettings>(settings);
   const [manualQuota, setManualQuota] = useState<number>(currentQuota);
   const [activeTab, setActiveTab] = useState<Tab>('stream');
 
+  const formatCurrency = (amount: number, currency = 'USD') => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+    }).format(amount);
+  };
+
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'stream', label: 'Stream', icon: <Radio size={16} /> },
     { id: 'interaction', label: 'Interactions', icon: <Clock size={16} /> },
+    { id: 'api', label: 'API', icon: <Key size={16} /> },
     { id: 'dev', label: 'Developer', icon: <Beaker size={16} /> },
   ];
 
@@ -114,6 +124,48 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
                 </div>
 
                 <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-6 space-y-6 shadow-inner">
+                  {/* Hype Train Toggle */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm text-slate-200 font-black tracking-tight flex items-center gap-2">
+                        <Zap size={14} className="text-yellow-400 fill-current" />
+                        Show Hype Train
+                      </span>
+                      <p className="text-[11px] text-slate-500 leading-relaxed max-w-[280px]">Display Hype Train progress widget in dashboard and overlay.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={formData.showHypeTrain}
+                        onChange={e => setFormData({ ...formData, showHypeTrain: e.target.checked })}
+                      />
+                      <div className="w-12 h-7 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 shadow-lg"></div>
+                    </label>
+                  </div>
+
+                  {/* Subscriptions Toggle */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm text-slate-200 font-black tracking-tight flex items-center gap-2">
+                        <Star size={14} className="text-purple-400 fill-current" />
+                        Show Subscriptions
+                      </span>
+                      <p className="text-[11px] text-slate-500 leading-relaxed max-w-[280px]">Display subscription notifications in the chat feed.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={formData.showSubscriptions}
+                        onChange={e => setFormData({ ...formData, showSubscriptions: e.target.checked })}
+                      />
+                      <div className="w-12 h-7 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:start-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 shadow-lg"></div>
+                    </label>
+                  </div>
+
+                  <div className="h-px bg-slate-800/50" />
+
                   <div className="flex items-center justify-between">
                     <div className="flex flex-col gap-1">
                       <span className="text-sm text-slate-200 font-black tracking-tight">Enable Timer</span>
@@ -159,87 +211,89 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
             </div>
           )}
 
-          {activeTab === 'dev' && (
+          {activeTab === 'api' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-300">
               <div className="space-y-6">
-                <div className="flex items-center gap-2 text-slate-500 font-black text-xs uppercase tracking-widest">
-                  <ShieldCheck size={16} /> Debug & Maintenance
+                <div className="flex items-center gap-2 text-indigo-400 font-black text-xs uppercase tracking-widest">
+                  <Key size={16} /> API & OAuth Keys
                 </div>
 
                 <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-6 space-y-6">
-                  {/* OAuth Keys Section */}
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-2 text-indigo-400 font-black text-xs uppercase tracking-widest">
-                      <Key size={16} /> API & OAuth Keys
+                  {/* Twitch Credentials */}
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1 flex items-center justify-between">
+                        <span className="flex items-center gap-2">
+                          <Twitch size={12} className="text-purple-400" />
+                          Twitch Client ID
+                        </span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Client ID..."
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 pl-12 text-white focus:outline-none focus:border-indigo-500 transition-all font-mono text-sm"
+                          value={formData.twitchClientId || ''}
+                          onChange={e => setFormData({ ...formData, twitchClientId: e.target.value })}
+                        />
+                        <ShieldCheck size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
+                      </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-6">
-                      {/* Twitch Credentials */}
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1 flex items-center justify-between">
-                            <span className="flex items-center gap-2">
-                              <Twitch size={12} className="text-purple-400" />
-                              Twitch Client ID
-                            </span>
-                          </label>
-                          <div className="relative">
-                            <input
-                              type="text"
-                              placeholder="Client ID..."
-                              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 pl-12 text-white focus:outline-none focus:border-indigo-500 transition-all font-mono text-sm"
-                              value={formData.twitchClientId || ''}
-                              onChange={e => setFormData({ ...formData, twitchClientId: e.target.value })}
-                            />
-                            <ShieldCheck size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1 flex items-center justify-between">
-                            <span className="flex items-center gap-2">
-                              <Twitch size={12} className="text-purple-400" />
-                              Twitch Access Token (Optional)
-                            </span>
-                            <a href="https://dev.twitch.tv/console/apps" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 transition-colors">Twitch Dev Console</a>
-                          </label>
-                          <div className="relative">
-                            <input
-                              type="password"
-                              placeholder="oauth:..."
-                              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 pl-12 text-white focus:outline-none focus:border-indigo-500 transition-all font-mono text-sm"
-                              value={formData.twitchAccessToken || ''}
-                              onChange={e => setFormData({ ...formData, twitchAccessToken: e.target.value })}
-                            />
-                            <Key size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* YouTube API Key */}
-                      <div className="space-y-2">
-                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1 flex items-center justify-between">
-                          <span className="flex items-center gap-2">
-                            <Youtube size={12} className="text-red-500" />
-                            Google Data API Key
-                          </span>
-                          <a href="https://console.cloud.google.com/apis/credentials" target="_blank" className="text-indigo-400 hover:text-indigo-300 transition-colors">Google Cloud Console</a>
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="password"
-                            placeholder="AIza..."
-                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 pl-12 text-white focus:outline-none focus:border-indigo-500 transition-all font-mono text-sm"
-                            value={formData.youtubeApiKey}
-                            onChange={e => setFormData({ ...formData, youtubeApiKey: e.target.value })}
-                          />
-                          <Key size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
-                        </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1 flex items-center justify-between">
+                        <span className="flex items-center gap-2">
+                          <Twitch size={12} className="text-purple-400" />
+                          Twitch Access Token (Optional)
+                        </span>
+                        <a href="https://dev.twitch.tv/console/apps" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 transition-colors">Twitch Dev Console</a>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="password"
+                          placeholder="oauth:..."
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 pl-12 text-white focus:outline-none focus:border-indigo-500 transition-all font-mono text-sm"
+                          value={formData.twitchAccessToken || ''}
+                          onChange={e => setFormData({ ...formData, twitchAccessToken: e.target.value })}
+                        />
+                        <Key size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
                       </div>
                     </div>
                   </div>
 
-                  <div className="h-px bg-slate-800/50" />
+                  {/* YouTube API Key */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1 flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Youtube size={12} className="text-red-500" />
+                        Google Data API Key
+                      </span>
+                      <a href="https://console.cloud.google.com/apis/credentials" target="_blank" className="text-indigo-400 hover:text-indigo-300 transition-colors">Google Cloud Console</a>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="password"
+                        placeholder="AIza..."
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 pl-12 text-white focus:outline-none focus:border-indigo-500 transition-all font-mono text-sm"
+                        value={formData.youtubeApiKey}
+                        onChange={e => setFormData({ ...formData, youtubeApiKey: e.target.value })}
+                      />
+                      <Key size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'dev' && (
+            <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-300">
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 text-slate-500 font-black text-xs uppercase tracking-widest">
+                  <ShieldCheck size={16} /> Debug & Simulation tools
+                </div>
+
+                <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-6 space-y-6">
 
                   <div className="flex items-center justify-between gap-6">
                     <div className="flex flex-col gap-1">
@@ -254,6 +308,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
                     </button>
                   </div>
 
+                  <div className="flex items-center justify-between gap-6">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm text-slate-200 font-black tracking-tight">Hype Train Simulation</span>
+                      <p className="text-[11px] text-slate-500 leading-relaxed">Trigger a fake Hype Train event (15s).</p>
+                    </div>
+                    {onSimulateHypeTrain && (
+                      <button
+                        onClick={onSimulateHypeTrain}
+                        className="shrink-0 px-5 py-2.5 bg-yellow-900/20 hover:bg-yellow-900/30 text-yellow-400 text-[10px] font-black uppercase tracking-widest rounded-xl border border-yellow-500/30 transition-all active:scale-95 shadow-md"
+                      >
+                        Start Train
+                      </button>
+                    )}
+                  </div>
+
                   <div className="flex flex-col gap-4">
                     <div className="flex flex-col gap-1">
                       <span className="text-sm text-slate-200 font-black tracking-tight">Donation Simulation</span>
@@ -266,6 +335,21 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
                         <button onClick={() => onSimulateDonation("500 CZK", "#F59E0B", 300)} className="flex-1 px-3 py-2 bg-amber-900/20 text-amber-400 border border-amber-500/30 text-[9px] font-black uppercase tracking-wider rounded-lg hover:bg-amber-900/40 transition-all">500 CZK</button>
                         <button onClick={() => onSimulateDonation("1000 CZK", "#A855F7", 600)} className="flex-1 px-3 py-2 bg-purple-900/20 text-purple-400 border border-purple-500/30 text-[9px] font-black uppercase tracking-wider rounded-lg hover:bg-purple-900/40 transition-all">1k CZK</button>
                         <button onClick={() => onSimulateDonation("2000 CZK", "#EF4444", 1800)} className="flex-1 px-3 py-2 bg-red-900/20 text-red-400 border border-red-500/30 text-[9px] font-black uppercase tracking-wider rounded-lg hover:bg-red-900/40 transition-all">2k CZK</button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm text-slate-200 font-black tracking-tight">Subscription Simulation</span>
+                      <p className="text-[11px] text-slate-500 leading-relaxed">Test subscription tiers and gifts.</p>
+                    </div>
+                    {onSimulateSubscription && (
+                      <div className="flex gap-2 flex-wrap">
+                        <button onClick={() => onSimulateSubscription("Prime", 1, false)} className="flex-1 px-3 py-2 bg-indigo-900/20 text-indigo-400 border border-indigo-500/30 text-[9px] font-black uppercase tracking-wider rounded-lg hover:bg-indigo-900/40 transition-all">Prime</button>
+                        <button onClick={() => onSimulateSubscription("1000", 1, false)} className="flex-1 px-3 py-2 bg-purple-900/20 text-purple-400 border border-purple-500/30 text-[9px] font-black uppercase tracking-wider rounded-lg hover:bg-purple-900/40 transition-all">Tier 1</button>
+                        <button onClick={() => onSimulateSubscription("3000", 6, false)} className="flex-1 px-3 py-2 bg-fuchsia-900/20 text-fuchsia-400 border border-fuchsia-500/30 text-[9px] font-black uppercase tracking-wider rounded-lg hover:bg-fuchsia-900/40 transition-all">T3 (6mo)</button>
+                        <button onClick={() => onSimulateSubscription("1000", 1, true)} className="flex-1 px-3 py-2 bg-pink-900/20 text-pink-400 border border-pink-500/30 text-[9px] font-black uppercase tracking-wider rounded-lg hover:bg-pink-900/40 transition-all">Gift Sub</button>
                       </div>
                     )}
                   </div>

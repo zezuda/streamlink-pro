@@ -1,4 +1,4 @@
-import { ChatMessage } from "../types";
+import { ChatMessage, HypeTrainData } from "../types";
 
 export class TwitchChatClient {
   private socket: WebSocket | null = null;
@@ -7,8 +7,10 @@ export class TwitchChatClient {
   private clientId?: string;
   private onMessage: (msg: ChatMessage) => void;
   private onStatsUpdate?: (stats: { viewers: number }) => void;
+  private onHypeTrainUpdate?: (hypeTrain: HypeTrainData | null) => void;
   private onStatusChange?: (status: 'online' | 'error' | 'connecting', error?: string) => void;
   private statsTimer: any = null;
+  private hypeTrainTimer: any = null;
 
   // Resilience state
   private reconnectAttempts = 0;
@@ -20,6 +22,7 @@ export class TwitchChatClient {
     channel: string,
     onMessage: (msg: ChatMessage) => void,
     onStatsUpdate?: (stats: { viewers: number }) => void,
+    onHypeTrainUpdate?: (hypeTrain: HypeTrainData | null) => void,
     accessToken?: string,
     clientId?: string,
     onStatusChange?: (status: 'online' | 'error' | 'connecting', error?: string) => void
@@ -27,6 +30,7 @@ export class TwitchChatClient {
     this.channel = channel.toLowerCase();
     this.onMessage = onMessage;
     this.onStatsUpdate = onStatsUpdate;
+    this.onHypeTrainUpdate = onHypeTrainUpdate;
     this.accessToken = accessToken;
     this.clientId = clientId;
     this.onStatusChange = onStatusChange;
@@ -55,6 +59,7 @@ export class TwitchChatClient {
 
         if (this.accessToken && this.clientId) {
           this.pollStats();
+          if (this.onHypeTrainUpdate) this.pollHypeTrain();
         }
       };
 
@@ -64,7 +69,7 @@ export class TwitchChatClient {
           this.socket?.send('PONG :tmi.twitch.tv');
           return;
         }
-        if (data.includes('PRIVMSG')) {
+        if (data.includes('PRIVMSG') || data.includes('USERNOTICE')) {
           const msg = this.parseTwitchMessage(data);
           if (msg) this.onMessage(msg);
         }
@@ -108,6 +113,7 @@ export class TwitchChatClient {
 
   private clearTimers() {
     if (this.statsTimer) clearTimeout(this.statsTimer);
+    if (this.hypeTrainTimer) clearTimeout(this.hypeTrainTimer);
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
   }
 
@@ -145,6 +151,79 @@ export class TwitchChatClient {
     }
   }
 
+  private async pollHypeTrain() {
+    if (!this.accessToken || !this.clientId || !this.onHypeTrainUpdate) return;
+
+    const trimmedToken = this.accessToken.trim().replace(/^oauth:/i, '');
+    const trimmedClientId = this.clientId.trim();
+
+    try {
+      let broadcasterId = '';
+      const userResp = await fetch(`https://api.twitch.tv/helix/users?login=${this.channel}`, {
+        headers: { 'Client-ID': trimmedClientId, 'Authorization': `Bearer ${trimmedToken}` }
+      });
+      if (userResp.ok) {
+        const userData = await userResp.json();
+        if (userData.data && userData.data.length > 0) {
+          broadcasterId = userData.data[0].id;
+        }
+      }
+
+      if (!broadcasterId) {
+        this.hypeTrainTimer = setTimeout(() => this.pollHypeTrain(), 60000);
+        return;
+      }
+
+      const resp = await fetch(`https://api.twitch.tv/helix/hypetrain/status?broadcaster_id=${broadcasterId}`, {
+        cache: 'no-store',
+        headers: {
+          'Client-ID': trimmedClientId,
+          'Authorization': `Bearer ${trimmedToken}`
+        }
+      });
+
+      if (!resp.ok) {
+        if (resp.status === 401 || resp.status === 403) {
+          console.warn("Twitch Hype Train 401/403: Missing scope channel:read:hype_train?");
+          if (this.onStatusChange) this.onStatusChange('error', "Hype Train: Missing 'channel:read:hype_train' scope.");
+          // Don't retry immediately to avoid spamming if the token is bad
+          this.hypeTrainTimer = setTimeout(() => this.pollHypeTrain(), 120000);
+          return;
+        }
+        this.hypeTrainTimer = setTimeout(() => this.pollHypeTrain(), 30000);
+        return;
+      }
+
+      const data = await resp.json();
+
+      if (!data.data || data.data.length === 0) {
+        this.onHypeTrainUpdate(null);
+      } else {
+        const train = data.data[0];
+        const expiresAt = new Date(train.expires_at).getTime();
+        const now = Date.now();
+
+        if (expiresAt > now) {
+          this.onHypeTrainUpdate({
+            id: train.id,
+            level: train.level,
+            progress: train.progress,
+            goal: train.goal,
+            total: train.total,
+            isActive: true,
+            expiryDate: new Date(train.expires_at)
+          });
+        } else {
+          this.onHypeTrainUpdate(null);
+        }
+      }
+
+      this.hypeTrainTimer = setTimeout(() => this.pollHypeTrain(), 10000);
+    } catch (e) {
+      this.hypeTrainTimer = setTimeout(() => this.pollHypeTrain(), 30000);
+    }
+  }
+
   disconnect() {
     this.isDisconnecting = true;
     this.clearTimers();
@@ -170,10 +249,61 @@ export class TwitchChatClient {
 
       const userMatch = raw.match(/:(\w+)!/);
       const author = tags['display-name'] || (userMatch ? userMatch[1] : 'Unknown');
-      const textMatch = raw.match(/PRIVMSG #[^ ]+ :(.+)/);
-      const text = textMatch ? textMatch[1].trim() : '';
 
-      if (!text) return null;
+      let text = '';
+      const privMsgMatch = raw.match(/PRIVMSG #[^ ]+ :(.+)/);
+      if (privMsgMatch) {
+        text = privMsgMatch[1].trim();
+      }
+
+      // Handle USERNOTICE (Subs, Resubs, Gifts)
+      const isUserNotice = raw.includes('USERNOTICE');
+      let eventType: 'chat' | 'donation' | 'subscription' = 'chat';
+      let subscriptionData = undefined;
+
+      if (isUserNotice) {
+        const msgId = tags['msg-id']; // sub, resub, subgift, anonsubgift, submysterygift, giftpaidupgrade, rewardgift, raid, unraid, ritual, bitsbadgetier
+
+        // We only care about subs for now
+        if (['sub', 'resub', 'subgift', 'anonsubgift'].includes(msgId)) {
+          eventType = 'subscription';
+          const plan = tags['msg-param-sub-plan'];
+          const months = parseInt(tags['msg-param-cumulative-months'] || '0') || parseInt(tags['msg-param-months'] || '0') || 1;
+          const isGift = msgId.includes('gift');
+          const gifter = tags['login']; // or display-name?
+
+          subscriptionData = {
+            plan,
+            months,
+            isGift,
+            gifter: isGift ? tags['display-name'] || tags['login'] : null
+          };
+
+          // System message is usually in the `system-msg` tag, replacing spaces with \s
+          const systemMsg = tags['system-msg'] ? tags['system-msg'].replace(/\\s/g, ' ') : '';
+
+          // If there is a user message attached, it comes after the second colon usually, but USERNOTICE parsing is tricky.
+          // raw: @tags :tmi.twitch.tv USERNOTICE #channel :Optional Message
+          const userNoticeMatch = raw.match(/USERNOTICE #[^ ]+ :(.+)/);
+          if (userNoticeMatch) {
+            text = userNoticeMatch[1].trim();
+          } else {
+            // specific case: no user message, just system message
+            text = systemMsg;
+          }
+
+          // If still empty (shouldn't happen for sub notifications usually having system-msg), fallback
+          if (!text) text = `${author} subscribed!`;
+        } else {
+          // Ignore other usernotices for now (like raids) or treat as chat?
+          // Let's treat as chat or null.
+          // Ideally we want to show Raids too? Maybe later.
+          // For now, if it's not a sub, return null to avoid clutter.
+          return null;
+        }
+      }
+
+      if (!text && eventType === 'chat') return null;
 
       // first-msg=1 indicates a first-time chat
       const isFirstMessage = tags['first-msg'] === '1';
@@ -183,6 +313,7 @@ export class TwitchChatClient {
       let donationAmount = undefined;
       if (bits) {
         donationAmount = `${bits} Bits`;
+        eventType = 'donation';
       }
 
       return {
@@ -190,6 +321,8 @@ export class TwitchChatClient {
         author,
         text,
         platform: 'twitch',
+        eventType,
+        subscription: subscriptionData,
         timestamp: new Date(),
         isRead: false,
         isFeatured: false,

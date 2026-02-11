@@ -18,6 +18,8 @@ export interface ChatMessage {
   donationAmount?: string;
   pinnedDuration?: number; // Duration in seconds
   pinnedAt?: number; // Absolute timestamp when the message was pinned (usually donation time)
+  eventType?: EventType;
+  subscription?: SubscriptionData;
 }
 
 export interface StreamStats {
@@ -37,6 +39,8 @@ export interface AppSettings {
   autoDismissSeconds: number;
   twitchAccessToken?: string;
   twitchClientId?: string;
+  showHypeTrain: boolean;
+  showSubscriptions: boolean;
 }
 
 export interface AppState {
@@ -46,3 +50,25 @@ export interface AppState {
   settings: AppSettings;
   quotaUsage: number;
 }
+
+export type EventType = 'chat' | 'donation' | 'subscription' | 'follow';
+
+export interface SubscriptionData {
+  plan?: string;
+  months?: number;
+  isGift?: boolean;
+  gifter?: string;
+  streak?: number;
+}
+
+export interface HypeTrainData {
+  id: string;
+  level: number;
+  progress: number;
+  goal: number;
+  total: number;
+  isActive: boolean;
+  expiryDate?: Date;
+  isTest?: boolean;
+}
+

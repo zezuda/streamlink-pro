@@ -12,6 +12,7 @@ import { useChatConnection } from '@/src/hooks/useChatConnection';
 const App: React.FC = () => {
   const location = useLocation();
   const { settings, setSettings, quotaUsage, setQuotaUsage, incrementQuota } = useAppSettings();
+
   const {
     state: messageState,
     addMessage,
@@ -24,11 +25,12 @@ const App: React.FC = () => {
     broadcastFeatured
   } = useMessageStore(settings);
 
-  const { twitchClient, youtubeClient } = useChatConnection({
+  const { twitchClient, youtubeClient, hypeTrain, simulateHypeTrain } = useChatConnection({
     settings,
     addMessage,
     updateStats,
-    incrementQuota
+    incrementQuota,
+    readOnly: location.pathname.includes('/overlay') // Overlay should not write to Firebase
   });
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -146,6 +148,49 @@ const App: React.FC = () => {
     addMessage(msg);
   }, [addMessage]);
 
+  const simulateSubscription = useCallback((plan: string, months: number, isGift: boolean) => {
+    // Check if subscriptions are enabled in settings
+    if (!settings.showSubscriptions) return;
+
+    const msg: ChatMessage = {
+      id: Math.random().toString(36).substring(7),
+      author: isGift ? "KindGiffter_88" : "NewSubscriber_01",
+      text: isGift ? "Just gifted a sub to RandomUser!" : "Just subscribed! Love the content!",
+      platform: 'twitch',
+      timestamp: new Date(),
+      isRead: false,
+      isFeatured: false,
+      avatarUrl: `https://api.dicebear.com/7.x/identicon/svg?seed=${isGift ? "KindGiffter_88" : "NewSubscriber_01"}`,
+      authorColor: '#9146FF',
+      eventType: 'subscription',
+      subscription: {
+        plan,
+        months,
+        isGift,
+        gifter: isGift ? "KindGiffter_88" : null
+      }
+    };
+    addMessage(msg);
+    setIsSettingsOpen(false); // Close settings to show the alert
+  }, [addMessage, settings.showSubscriptions]);
+
+  const handleSimulateHypeTrain = useCallback(() => {
+    // Check if Hype Train is enabled in settings
+    if (!settings.showHypeTrain) return;
+
+    simulateHypeTrain({
+      id: "simulated-hype-train",
+      level: Math.floor(Math.random() * 5) + 1,
+      progress: 750,
+      goal: 1000,
+      total: 1750,
+      isActive: true,
+      expiryDate: new Date(Date.now() + 300000)
+    });
+    // Removed auto-end timeout to keep the train visible indefinitely for testing
+    setIsSettingsOpen(false); // Close settings to show the widget
+  }, [simulateHypeTrain, settings.showHypeTrain]);
+
   // Merge state for Dashboard
   const dashboardState = {
     ...messageState,
@@ -161,6 +206,7 @@ const App: React.FC = () => {
           element={
             <Dashboard
               state={dashboardState}
+              hypeTrain={settings.showHypeTrain ? hypeTrain : null}
               onFeature={featureMessage}
               onMarkRead={markAsRead}
               onMarkTrash={markAsTrashed}
@@ -173,7 +219,7 @@ const App: React.FC = () => {
         <Route
           path="/overlay"
           element={
-            <Overlay featuredMessage={messageState.featuredMessage} />
+            <Overlay featuredMessage={messageState.featuredMessage} hypeTrain={settings.showHypeTrain ? hypeTrain : null} />
           }
         />
       </Routes>
@@ -216,10 +262,6 @@ const App: React.FC = () => {
                   <Play size={20} fill="currentColor" />
                 </button>
               </div>
-              <div className="flex items-start gap-2 text-[10px] text-slate-500 bg-slate-950/50 p-3 rounded-lg border border-slate-800/50">
-                <Info size={14} className="shrink-0" />
-                <p>Handles URLs like <code>studio.youtube.com/video/ID/livestreaming</code></p>
-              </div>
             </div>
 
             <div className="flex justify-between items-center pt-2">
@@ -252,6 +294,8 @@ const App: React.FC = () => {
           }}
           onClose={() => setIsSettingsOpen(false)}
           onSimulateDonation={simulateDonation}
+          onSimulateHypeTrain={handleSimulateHypeTrain}
+          onSimulateSubscription={simulateSubscription}
         />
       )}
     </div>

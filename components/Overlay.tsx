@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
-import { ChatMessage } from '../types';
-import { Youtube, Twitch as TwitchIcon, Clock, DollarSign } from 'lucide-react';
+import { ChatMessage, HypeTrainData } from '../types';
+import { Youtube, Twitch as TwitchIcon, Clock, DollarSign, Star, Zap } from 'lucide-react';
 
 // Firebase imports from npm
 import { ref, onValue } from 'firebase/database';
@@ -9,7 +9,51 @@ import { db } from '@/src/firebase';
 
 interface OverlayProps {
   featuredMessage: ChatMessage | null;
+  hypeTrain?: HypeTrainData | null;
 }
+
+const HypeTrainWidget: React.FC<{ data: HypeTrainData }> = ({ data }) => {
+  if (!data?.isActive) return null;
+
+  const percent = Math.min(100, Math.floor((data.progress / data.goal) * 100));
+
+  return (
+    <div className="absolute top-8 right-8 flex flex-col items-end animate-in slide-in-from-right duration-700 pointer-events-auto">
+      <div className="bg-[#9146FF] text-white p-6 rounded-[2rem] shadow-[0_20px_60px_-10px_rgba(145,70,255,0.6)] border border-white/20 min-w-[300px] overflow-hidden relative group">
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-200 contrast-200 mix-blend-overlay"></div>
+
+        <div className="flex justify-between items-center mb-4 relative z-10">
+          <div className="flex items-center gap-2">
+            <Zap className="fill-yellow-300 text-yellow-300 animate-pulse" size={20} />
+            <span className="font-black uppercase tracking-widest text-sm text-white/90">Hype Train</span>
+          </div>
+          <div className="flex flex-col items-end">
+            <span className="font-black text-3xl leading-none italic">LVL {data.level}</span>
+          </div>
+        </div>
+
+        <div className="w-full bg-black/40 h-6 rounded-full overflow-hidden relative border border-white/10 shadow-inner">
+          <div
+            className="h-full bg-gradient-to-r from-yellow-300 to-yellow-500 shadow-[0_0_20px_rgba(253,224,71,0.6)] transition-all duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] relative"
+            style={{ width: `${percent}%` }}
+          >
+            <div className="absolute right-0 top-0 bottom-0 w-1 bg-white/80" />
+          </div>
+        </div>
+
+        <div className="flex justify-between mt-2 text-xs font-bold font-mono opacity-80 uppercase tracking-wider relative z-10">
+          <span>{Math.floor(percent)}%</span>
+          {data.expiryDate && (
+            <span className="flex items-center gap-1.5">
+              <Clock size={12} />
+              {Math.floor((new Date(data.expiryDate).getTime() - Date.now()) / 1000)}s
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const NumericCountdown: React.FC<{ duration: number; featuredAt: number | null }> = ({ duration, featuredAt }) => {
   const [timeLeft, setTimeLeft] = useState(duration);
@@ -39,7 +83,7 @@ const NumericCountdown: React.FC<{ duration: number; featuredAt: number | null }
   );
 };
 
-const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage }) => {
+const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage, hypeTrain }) => {
   const [activeMsg, setActiveMsg] = useState<ChatMessage | null>(initialMessage);
   const [isVisible, setIsVisible] = useState(false);
   const [isCloudSynced, setIsCloudSynced] = useState(false);
@@ -105,7 +149,9 @@ const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage }) =>
     };
   }, [activeMsg?.id, isVisible]);
 
-  if (!activeMsg && !isVisible) return null;
+  // if (!activeMsg && !isVisible) return null; // REMOVED: This blocked Hype Train if no message
+  // Instead, we only return null if NEITHER message NOR hype train is active
+  if (!activeMsg && !isVisible && (!hypeTrain || !hypeTrain.isActive)) return null;
 
   const isTwitch = activeMsg?.platform === 'twitch';
   let platformColor = isTwitch ? '#9146FF' : '#FF0000';
@@ -113,6 +159,11 @@ const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage }) =>
   // Donation Logic for Styling
   const donationAmount = activeMsg?.donationAmount;
   const isDonation = !!donationAmount;
+  const isSubscription = activeMsg?.eventType === 'subscription';
+
+  if (isSubscription) {
+    platformColor = '#a855f7'; // Purple-500 for subs
+  }
 
   if (isDonation) {
     const amountVal = parseFloat(donationAmount?.replace(/[^0-9.]/g, '') || '0');
@@ -124,7 +175,12 @@ const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage }) =>
   }
 
   return (
-    <div className="w-full h-full flex items-end justify-start p-16 pointer-events-none overflow-hidden">
+    <div className="w-full h-full flex items-end justify-start p-16 pointer-events-none overflow-hidden relative">
+      {hypeTrain && <HypeTrainWidget data={hypeTrain} />}
+
+
+
+      {/* Container for Message */}
       <div
         className={`w-full transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] transform origin-left ${isVisible && activeMsg
           ? 'translate-x-0 opacity-100 scale-100 blur-0'
@@ -132,8 +188,8 @@ const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage }) =>
           }`}
       >
         <div
-          className={`relative group flex items-stretch border border-white/10 rounded-[2rem] shadow-[0_64px_128px_-32px_rgba(0,0,0,0.8)] overflow-hidden w-full ${!isDonation ? 'bg-slate-950/90' : ''}`}
-          style={isDonation ? { backgroundColor: platformColor } : undefined}
+          className={`relative group flex items-stretch border border-white/10 rounded-[2rem] shadow-[0_64px_128px_-32px_rgba(0,0,0,0.8)] overflow-hidden w-full ${(!isDonation && !isSubscription) ? 'bg-slate-950/90' : ''}`}
+          style={(isDonation || isSubscription) ? { backgroundColor: platformColor } : undefined}
         >
 
           <div
@@ -145,13 +201,14 @@ const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage }) =>
             <div className="flex items-center gap-4">
               <div
                 className="flex items-center justify-center p-2 rounded-xl border border-white/10 shadow-inner"
-                style={!isDonation ? { backgroundColor: platformColor } : !isTwitch ? { backgroundColor: '#FF0000' } : { backgroundColor: '#9146FF' }}
+                style={(!isDonation && !isSubscription) ? { backgroundColor: platformColor } : !isTwitch ? { backgroundColor: '#FF0000' } : { backgroundColor: '#9146FF' }}
               >
                 {isTwitch ? (
                   <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24"><path d="M11.571 4.714h1.715v5.143H11.57V4.714zm4.715 0H18v5.143h-1.714V4.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0H6zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714v9.429z" /></svg>
                 ) : (
                   <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24" fill="none"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z" fill="white" /><path d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="#FF0000" /></svg>
                 )}
+                {isSubscription && <Star className="w-4 h-4 text-white fill-current absolute animate-spin-slow" />}
               </div>
 
               <span
@@ -166,6 +223,13 @@ const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage }) =>
                     className="w-2 h-2 rounded-full animate-pulse bg-white"
                   />
                   {donationAmount}
+                </span>
+              )}
+
+              {isSubscription && activeMsg?.subscription && (
+                <span className="ml-auto flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/20 border border-white/10 text-white font-black text-xl tracking-widest shadow-lg">
+                  <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                  {activeMsg.subscription.months && activeMsg.subscription.months > 1 ? `${activeMsg.subscription.months} MONTHS` : 'SUBSCRIBER'}
                 </span>
               )}
             </div>

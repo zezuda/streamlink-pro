@@ -33,14 +33,25 @@ export const useMessageStore = (settings: { autoDismissEnabled: boolean; autoDis
             featuredAt: featuredAt
         };
 
-        set(ref(db, 'currentComment'), {
-            ...payload,
-            payload: msg ? {
-                ...msg,
-                featuredAt,
-                timestamp: msg.timestamp.toISOString()
-            } : null
-        });
+        // Sanitize payload for Firebase (remove undefined)
+        const sanitizeForFirebase = (obj: any): any => {
+            if (obj === null || obj === undefined) return null;
+            if (typeof obj !== 'object') return obj;
+            if (obj instanceof Date) return obj.toISOString();
+
+            const result: any = Array.isArray(obj) ? [] : {};
+            for (const key in obj) {
+                const val = obj[key];
+                if (val !== undefined) {
+                    result[key] = sanitizeForFirebase(val);
+                }
+            }
+            return result;
+        };
+
+        const safePayload = sanitizeForFirebase(payload);
+
+        set(ref(db, 'currentComment'), safePayload);
 
         syncChannel.postMessage(payload);
         localStorage.setItem('streamlink_sync_event', JSON.stringify(payload));

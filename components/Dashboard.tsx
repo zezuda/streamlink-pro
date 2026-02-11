@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { AppState, ChatMessage, StreamStats } from '../types';
+import { AppState, ChatMessage, StreamStats, HypeTrainData } from '../types';
 import MessageItem from './MessageItem';
 import { PinnedMessagesWidget } from './PinnedMessagesWidget';
 import {
@@ -26,6 +26,7 @@ import {
 
 interface DashboardProps {
   state: AppState;
+  hypeTrain?: HypeTrainData | null;
   onFeature: (id: string) => void;
   onMarkRead: (id: string) => void;
   onMarkTrash: (id: string) => void;
@@ -151,8 +152,54 @@ const QuotaTracker: React.FC<{ used: number, onEdit: () => void }> = ({ used, on
   );
 };
 
+const DashboardHypeTrainWidget: React.FC<{ data: HypeTrainData }> = ({ data }) => {
+  if (!data?.isActive) return null;
+
+  const percent = Math.min(100, Math.floor((data.progress / data.goal) * 100));
+
+  return (
+    <div className="p-4 rounded-xl bg-slate-900 border border-purple-500/30 relative overflow-hidden group">
+      <div className="absolute inset-0 bg-purple-600/5 animate-pulse"></div>
+
+      <div className="relative z-10 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-purple-400 font-black text-[10px] uppercase tracking-widest">
+            <Zap size={12} className="fill-current animate-bounce" />
+            Hype Train
+          </div>
+          <span className="text-white font-black text-sm italic">LVL {data.level}</span>
+        </div>
+
+        <div className="h-2 w-full bg-slate-950 rounded-full overflow-hidden border border-white/5">
+          <div
+            className="h-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-500 ease-out"
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+
+        <div className="flex justify-between items-end">
+          <div className="flex flex-col">
+            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Progress</span>
+            <span className="text-xs font-mono font-bold text-white">{Math.floor(percent)}%</span>
+          </div>
+          {data.expiryDate && (
+            <div className="flex flex-col items-end">
+              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Ends In</span>
+              <span className="text-xs font-mono font-bold text-white flex items-center gap-1">
+                <Clock size={10} />
+                {Math.floor((new Date(data.expiryDate).getTime() - Date.now()) / 1000)}s
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Dashboard: React.FC<DashboardProps> = ({
   state,
+  hypeTrain,
   onFeature,
   onMarkRead,
   onMarkTrash,
@@ -293,10 +340,17 @@ const Dashboard: React.FC<DashboardProps> = ({
               <StatusIndicator
                 platform="YouTube"
                 stats={state.stats.youtube}
-                icon={<svg className="w-3 h-3" viewBox="0 0 24 24" fill="none"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z" fill="#FF0000" /><path d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="white" /></svg>}
+                icon={<svg className="w-3 h-3" viewBox="0 0 24 24" fill="none"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z" fill="#FF0000" /><path d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="black" /></svg>}
               />
             </div>
           </div>
+
+          {/* Hype Train Widget */}
+          {hypeTrain && hypeTrain.isActive && (
+            <div className="animate-in fade-in slide-in-from-right duration-500">
+              <DashboardHypeTrainWidget data={hypeTrain} />
+            </div>
+          )}
 
           {/* Pinned Donations Widget */}
           <PinnedMessagesWidget
@@ -363,7 +417,6 @@ const Dashboard: React.FC<DashboardProps> = ({
                     <Layers size={20} className="opacity-40" />
                   </div>
                   <p className="text-xs font-medium px-4">Click any message in the feed to push it to your stream overlay.</p>
-                  <p className="text-[10px] text-slate-500">Make sure the Overlay tab is open for sync to work.</p>
                 </div>
               )}
 
