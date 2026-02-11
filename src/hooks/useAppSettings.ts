@@ -6,7 +6,7 @@ const DEFAULT_SETTINGS: AppSettings = {
     twitchClientId: import.meta.env.VITE_TWITCH_CLIENT_ID || '',
     twitchAccessToken: import.meta.env.VITE_TWITCH_ACCESS_TOKEN || '',
     youtubeVideoId: '',
-    youtubeApiKey: '',
+    youtubeApiKey: import.meta.env.VITE_YOUTUBE_API_KEY || '',
     showAvatars: true,
     fontSize: 14,
     autoDismissEnabled: false,

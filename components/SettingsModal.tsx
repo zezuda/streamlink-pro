@@ -75,16 +75,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
                     onChange={e => setFormData({ ...formData, twitchChannel: e.target.value })}
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1">Access Token (Optional - For Viewer Count)</label>
-                  <input
-                    type="password"
-                    placeholder="oauth:..."
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white placeholder:text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-medium"
-                    value={formData.twitchAccessToken || ''}
-                    onChange={e => setFormData({ ...formData, twitchAccessToken: e.target.value })}
-                  />
-                </div>
               </div>
 
               <div className="h-px bg-slate-800/50" />
@@ -109,22 +99,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
                       value={formData.youtubeVideoId}
                       onChange={e => setFormData({ ...formData, youtubeVideoId: e.target.value })}
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1 flex justify-between">
-                      Google Data API Key
-                      <a href="https://console.cloud.google.com/apis/credentials" target="_blank" className="text-indigo-400 hover:text-indigo-300 transition-colors">Google Cloud Console</a>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="password"
-                        placeholder="AIza..."
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 pl-12 text-white focus:outline-none focus:border-indigo-500 transition-all font-mono text-sm"
-                        value={formData.youtubeApiKey}
-                        onChange={e => setFormData({ ...formData, youtubeApiKey: e.target.value })}
-                      />
-                      <Key size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
-                    </div>
                   </div>
                 </div>
               </div>
@@ -192,6 +166,53 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
                 </div>
 
                 <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-6 space-y-6">
+                  {/* OAuth Keys Section */}
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-2 text-indigo-400 font-black text-xs uppercase tracking-widest">
+                      <Key size={16} /> API & OAuth Keys
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-6">
+                      {/* Twitch Access Token */}
+                      <div className="space-y-2">
+                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1 flex items-center gap-2">
+                          <Twitch size={12} className="text-purple-400" />
+                          Twitch Access Token (Optional)
+                        </label>
+                        <input
+                          type="password"
+                          placeholder="oauth:..."
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white placeholder:text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-medium"
+                          value={formData.twitchAccessToken || ''}
+                          onChange={e => setFormData({ ...formData, twitchAccessToken: e.target.value })}
+                        />
+                      </div>
+
+                      {/* YouTube API Key */}
+                      <div className="space-y-2">
+                        <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1 flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <Youtube size={12} className="text-red-500" />
+                            Google Data API Key
+                          </span>
+                          <a href="https://console.cloud.google.com/apis/credentials" target="_blank" className="text-indigo-400 hover:text-indigo-300 transition-colors">Cloud Console</a>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="password"
+                            placeholder="AIza..."
+                            className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 pl-12 text-white focus:outline-none focus:border-indigo-500 transition-all font-mono text-sm"
+                            value={formData.youtubeApiKey}
+                            onChange={e => setFormData({ ...formData, youtubeApiKey: e.target.value })}
+                          />
+                          <Key size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="h-px bg-slate-800/50" />
+
                   <div className="flex items-center justify-between gap-6">
                     <div className="flex flex-col gap-1">
                       <span className="text-sm text-slate-200 font-black tracking-tight">Chat Simulation</span>
@@ -204,10 +225,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
                       GENERATE FEED
                     </button>
                   </div>
-
-                  <div className="h-px bg-slate-800/50" />
-
-
                 </div>
               </div>
             </div>
