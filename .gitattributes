@@ -1,0 +1,16 @@
+# Enforce LF line endings for all text files
+* text=auto eol=lf
+
+# Explicitly set LF for shell scripts and binaries in node_modules
+*.sh text eol=lf
+node_modules/.bin/* text eol=lf
+
+# Standard web files
+*.js text eol=lf
+*.jsx text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+*.md text eol=lf
