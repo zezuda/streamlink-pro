@@ -178,6 +178,13 @@ export class TwitchChatClient {
       // first-msg=1 indicates a first-time chat
       const isFirstMessage = tags['first-msg'] === '1';
 
+      // Check for bits (Cheer)
+      const bits = tags['bits'];
+      let donationAmount = undefined;
+      if (bits) {
+        donationAmount = `${bits} Bits`;
+      }
+
       return {
         id: tags['id'] || Math.random().toString(36).substr(2, 9),
         author,
@@ -188,7 +195,8 @@ export class TwitchChatClient {
         isFeatured: false,
         isFirstMessage,
         avatarUrl: `https://api.dicebear.com/7.x/identicon/svg?seed=${author}`,
-        authorColor: tags['color'] || '#9146FF'
+        authorColor: tags['color'] || '#9146FF',
+        donationAmount
       };
     } catch (e) {
       return null;

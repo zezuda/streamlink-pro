@@ -165,16 +165,26 @@ export class YouTubeChatClient {
 
       if (data.items) {
         data.items.forEach((item: any) => {
+          const snippet = item.snippet;
+          let donationAmount = undefined;
+
+          if (snippet.type === 'superChatEvent') {
+            donationAmount = snippet.superChatDetails?.amountDisplayString;
+          } else if (snippet.type === 'superStickerEvent') {
+            donationAmount = snippet.superStickerDetails?.amountDisplayString;
+          }
+
           const msg: ChatMessage = {
             id: item.id,
             author: item.authorDetails.displayName,
-            text: item.snippet.displayMessage,
+            text: snippet.displayMessage,
             platform: 'youtube',
-            timestamp: new Date(item.snippet.publishedAt),
+            timestamp: new Date(snippet.publishedAt),
             isRead: false,
             isFeatured: false,
             avatarUrl: item.authorDetails.profileImageUrl,
-            authorColor: '#FF0000'
+            authorColor: '#FF0000',
+            donationAmount
           };
           this.onMessage(msg);
         });
