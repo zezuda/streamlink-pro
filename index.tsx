@@ -4,6 +4,7 @@ import ReactDOM from 'react-dom/client';
 import { HashRouter } from 'react-router-dom';
 import App from './App';
 import './src/index.css';
+import { AppSettingsProvider } from './src/contexts/AppSettingsContext';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -19,7 +20,9 @@ root.render(
         v7_relativeSplatPath: true
       }}
     >
-      <App />
+      <AppSettingsProvider>
+        <App />
+      </AppSettingsProvider>
     </HashRouter>
   </React.StrictMode>
 );
