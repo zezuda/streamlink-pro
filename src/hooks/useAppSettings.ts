@@ -28,6 +28,7 @@ export const useAppSettings = () => {
             // Enforce environment variables if they exist
             const envClientId = import.meta.env.VITE_TWITCH_CLIENT_ID;
             const envAccessToken = import.meta.env.VITE_TWITCH_ACCESS_TOKEN;
+            const envChannel = import.meta.env.VITE_TWITCH_CHANNEL;
 
             return {
                 ...DEFAULT_SETTINGS,
@@ -35,6 +36,8 @@ export const useAppSettings = () => {
                 twitchClientId: envClientId || parsed.twitchClientId || '',
                 // Prioritize user-provided token (from OAuth) -> Env Token -> Persisted Token (fallback)
                 twitchAccessToken: parsed.twitchAccessToken || envAccessToken || '',
+                // Prioritize user-provided channel (from OAuth) -> Env Channel -> Persisted Channel (fallback)
+                twitchChannel: parsed.twitchChannel || envChannel || '',
                 youtubeVideoId: '' // Always reset video ID on load
             };
         } catch (e) {

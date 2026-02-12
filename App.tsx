@@ -104,6 +104,46 @@ const App: React.FC = () => {
     // but just to be safe, we let router handle it.
   }, []);
 
+  // Auto-fetch Twitch Username if we have a token but no channel name (e.g. from .env)
+  useEffect(() => {
+    if (settings.twitchAccessToken && !settings.twitchChannel) {
+      const clientId = settings.twitchClientId || import.meta.env.VITE_TWITCH_CLIENT_ID;
+
+      // We need a client ID to make requests
+      if (!clientId) return;
+
+      console.log("App: Token present but no channel name. Attempting to fetch user details...");
+
+      // Clean token (remove oauth: prefix if present)
+      const cleanToken = settings.twitchAccessToken.replace(/^oauth:/i, '');
+
+      fetch('https://api.twitch.tv/helix/users', {
+        headers: {
+          'Client-ID': clientId,
+          'Authorization': `Bearer ${cleanToken}`
+        }
+      })
+        .then(res => {
+          if (!res.ok) throw new Error(`Failed to fetch user: ${res.status}`);
+          return res.json();
+        })
+        .then(data => {
+          if (data.data && data.data.length > 0) {
+            const user = data.data[0];
+            console.log("App: Auto-fetched user:", user.login);
+
+            setSettings(prev => ({
+              ...prev,
+              twitchChannel: user.login
+            }));
+          }
+        })
+        .catch(err => {
+          console.warn("App: Could not auto-fetch Twitch username:", err);
+        });
+    }
+  }, [settings.twitchAccessToken, settings.twitchChannel, settings.twitchClientId, setSettings]);
+
   const triggerTestMessages = useCallback(() => {
     const dummyNames = ["CyberPunk_2077", "StreamGod", "PixelViper", "GlitchMaster", "NebulaKnight", "EchoAlpha"];
     const dummyTexts = [
