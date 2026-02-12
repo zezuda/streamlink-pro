@@ -57,11 +57,11 @@ const PinnedMessageItem: React.FC<{ message: ChatMessage; onClick: () => void }>
         >
             {/* Progress Bar Background */}
             <div
-                className={`absolute inset-0 ${bgColor} opacity-10 transition-all duration-300`}
+                className={`absolute inset-0 ${bgColor} opacity-40 transition-all duration-300`}
                 style={{ width: `${progress}%` }}
             />
 
-            <div className={`relative h-full px-3 flex items-center gap-3 bg-slate-900/40 backdrop-blur-sm`}>
+            <div className={`relative h-full px-3 flex items-center gap-3 bg-slate-900/40 backdrop-blur-xs`}>
                 <div className="relative">
                     <img
                         src={message.avatarUrl}

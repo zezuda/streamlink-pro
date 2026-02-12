@@ -25,10 +25,17 @@ export const useAppSettings = () => {
             const saved = localStorage.getItem('streamlink_settings');
             const parsed = saved ? JSON.parse(saved) : DEFAULT_SETTINGS;
 
+            // Enforce environment variables if they exist
+            const envClientId = import.meta.env.VITE_TWITCH_CLIENT_ID;
+            const envAccessToken = import.meta.env.VITE_TWITCH_ACCESS_TOKEN;
+
             return {
                 ...DEFAULT_SETTINGS,
                 ...parsed,
-                youtubeVideoId: ''
+                twitchClientId: envClientId || parsed.twitchClientId || '',
+                // Prioritize user-provided token (from OAuth) -> Env Token -> Persisted Token (fallback)
+                twitchAccessToken: parsed.twitchAccessToken || envAccessToken || '',
+                youtubeVideoId: '' // Always reset video ID on load
             };
         } catch (e) {
             return DEFAULT_SETTINGS;

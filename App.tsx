@@ -8,6 +8,7 @@ import { Youtube, Play, Info } from 'lucide-react';
 import { useAppSettings } from '@/src/hooks/useAppSettings';
 import { useMessageStore } from '@/src/hooks/useMessageStore';
 import { useChatConnection } from '@/src/hooks/useChatConnection';
+import AuthHandler from './components/AuthHandler';
 
 const App: React.FC = () => {
   const location = useLocation();
@@ -61,8 +62,8 @@ const App: React.FC = () => {
     }
 
     if (messageState.featuredMessage) {
-      // Determine duration: Use message-specific duration (e.g. donation) or global setting
-      const durationSeconds = messageState.featuredMessage.pinnedDuration || settings.autoDismissSeconds;
+      // Determine duration: Use global setting for overlay dismissal (pinnedDuration is for Pinned Widget only)
+      const durationSeconds = settings.autoDismissSeconds;
 
       // Only set timer if enabled OR if it's a donation (donations usually have fixed expiry, but let's respect the master toggle)
       // User asked: "turn off auto-dismissal options... message still gets dismissed".
@@ -95,6 +96,13 @@ const App: React.FC = () => {
       setShowLaunchPrompt(true);
     }
   }, [settings.youtubeApiKey, settings.youtubeVideoId, location.pathname]);
+
+  // Handle Twitch OAuth Redirect - Handled by AuthHandler route now
+  // We keep this clear just in case, but real logic is in AuthHandler
+  useEffect(() => {
+    // If we happen to be on root but hash has token (rare race condition), AuthHandler might pick it up via wildcard dispatch
+    // but just to be safe, we let router handle it.
+  }, []);
 
   const triggerTestMessages = useCallback(() => {
     const dummyNames = ["CyberPunk_2077", "StreamGod", "PixelViper", "GlitchMaster", "NebulaKnight", "EchoAlpha"];
@@ -185,7 +193,7 @@ const App: React.FC = () => {
       goal: 1000,
       total: 1750,
       isActive: true,
-      expiryDate: new Date(Date.now() + 300000)
+      expiryDate: new Date(Date.now() + 60000)
     });
     // Removed auto-end timeout to keep the train visible indefinitely for testing
     setIsSettingsOpen(false); // Close settings to show the widget
@@ -197,6 +205,18 @@ const App: React.FC = () => {
     settings,
     quotaUsage
   };
+
+  const handleTwitchLogin = useCallback(() => {
+    const clientId = settings.twitchClientId || import.meta.env.VITE_TWITCH_CLIENT_ID;
+    if (!clientId) {
+      alert("Missing Twitch Client ID. Please configure it in .env first.");
+      return;
+    }
+    const redirectUri = window.location.origin;
+    const scopes = "chat:read chat:edit channel:read:hype_train channel:read:subscriptions";
+    const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scopes)}`;
+    window.location.href = authUrl;
+  }, [settings.twitchClientId]);
 
   return (
     <div className={`h-screen w-full flex flex-col overflow-hidden ${location.pathname.includes('overlay') ? 'bg-transparent' : 'bg-slate-950'}`}>
@@ -213,6 +233,7 @@ const App: React.FC = () => {
               onToggleInteresting={toggleInteresting}
               onClearFeatured={clearFeatured}
               onOpenSettings={() => setIsSettingsOpen(true)}
+              onTwitchLogin={handleTwitchLogin}
             />
           }
         />
@@ -222,6 +243,8 @@ const App: React.FC = () => {
             <Overlay featuredMessage={messageState.featuredMessage} hypeTrain={settings.showHypeTrain ? hypeTrain : null} />
           }
         />
+        {/* Catch-all for Twitch OAuth redirect which HashRouter sees as a path starting with access_token */}
+        <Route path="*" element={<AuthHandler />} />
       </Routes>
 
       {showLaunchPrompt && (

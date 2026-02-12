@@ -2,7 +2,7 @@ import { useRef, useEffect, useState } from 'react';
 import { AppSettings, ChatMessage, StreamStats, HypeTrainData } from '@/types';
 import { TwitchChatClient } from '@/services/twitchService';
 import { YouTubeChatClient } from '@/services/youtubeService';
-import { ref, set, onValue } from 'firebase/database';
+import { ref, set, onValue, get } from 'firebase/database';
 import { db } from '@/src/firebase';
 
 interface UseChatConnectionProps {
@@ -130,8 +130,18 @@ export const useChatConnection = ({ settings, addMessage, updateStats, increment
             setHypeTrain(data);
         });
 
+        // Clear simulation on mount (if this is the Dashboard)
+        if (!readOnly) {
+            get(hypeTrainRef).then(snapshot => {
+                const data = snapshot.val();
+                if (data?.isTest) {
+                    set(hypeTrainRef, null);
+                }
+            });
+        }
+
         return () => unsubscribe();
-    }, []);
+    }, [readOnly]);
 
     return {
         twitchClient,

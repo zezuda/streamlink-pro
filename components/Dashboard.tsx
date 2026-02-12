@@ -21,7 +21,8 @@ import {
   Trash2,
   Keyboard,
   Clock,
-  Coins
+  Coins,
+  LogIn
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -33,6 +34,7 @@ interface DashboardProps {
   onToggleInteresting: (id: string) => void;
   onClearFeatured: () => void;
   onOpenSettings: () => void;
+  onTwitchLogin: () => void;
 }
 
 const QUOTA_LIMIT = 10000;
@@ -70,7 +72,8 @@ const StatusIndicator: React.FC<{
   platform: string;
   stats: StreamStats;
   icon: React.ReactNode;
-}> = ({ platform, stats, icon }) => {
+  onReconnect?: () => void;
+}> = ({ platform, stats, icon, onReconnect }) => {
   const isOnline = stats.status === 'online';
   const isConnecting = stats.status === 'connecting';
   const isError = stats.status === 'error';
@@ -96,6 +99,14 @@ const StatusIndicator: React.FC<{
             >
               Check Limits <ExternalLink size={8} />
             </a>
+          )}
+          {onReconnect && (
+            <button
+              onClick={onReconnect}
+              className="mt-2 flex items-center justify-center gap-1.5 px-2 py-1.5 bg-[#9146FF] hover:bg-[#7a2ce8] text-white rounded text-[9px] font-bold uppercase tracking-wider transition-all shadow-lg active:scale-95 w-full"
+            >
+              <LogIn size={10} /> Connect
+            </button>
           )}
         </div>
       ) : (
@@ -205,7 +216,8 @@ const Dashboard: React.FC<DashboardProps> = ({
   onMarkTrash,
   onToggleInteresting,
   onClearFeatured,
-  onOpenSettings
+  onOpenSettings,
+  onTwitchLogin
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -336,6 +348,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 platform="Twitch"
                 stats={state.stats.twitch}
                 icon={<svg className="w-3 h-3 text-purple-400 fill-current" viewBox="0 0 24 24"><path d="M11.571 4.714h1.715v5.143H11.57V4.714zm4.715 0H18v5.143h-1.714V4.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0H6zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714v9.429z" /></svg>}
+                onReconnect={(state.stats.twitch.status === 'error' || state.stats.twitch.status === 'offline') ? onTwitchLogin : undefined}
               />
               <StatusIndicator
                 platform="YouTube"

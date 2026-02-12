@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { AppSettings } from '../types';
-import { X, Save, Key, Twitch, Youtube, Info, ShieldCheck, Beaker, Clock, Radio, Settings, Zap, Star } from 'lucide-react';
+import { X, Save, Key, Twitch, Youtube, Info, ShieldCheck, Beaker, Clock, Radio, Settings, Zap, Star, LogIn, LogOut } from 'lucide-react';
 
 interface SettingsModalProps {
   settings: AppSettings;
@@ -14,7 +14,7 @@ interface SettingsModalProps {
   onSimulateSubscription?: (plan: string, months: number, isGift: boolean) => void;
 }
 
-type Tab = 'stream' | 'interaction' | 'api' | 'dev';
+type Tab = 'stream' | 'interaction' | 'dev';
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, onTriggerTest, onSave, onClose, onSimulateDonation, onSimulateHypeTrain, onSimulateSubscription }) => {
   const [formData, setFormData] = useState<AppSettings>(settings);
@@ -31,9 +31,20 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: 'stream', label: 'Stream', icon: <Radio size={16} /> },
     { id: 'interaction', label: 'Interactions', icon: <Clock size={16} /> },
-    { id: 'api', label: 'API', icon: <Key size={16} /> },
     { id: 'dev', label: 'Developer', icon: <Beaker size={16} /> },
   ];
+
+  const handleTwitchLogin = () => {
+    const clientId = formData.twitchClientId || import.meta.env.VITE_TWITCH_CLIENT_ID;
+    if (!clientId) {
+      alert("Missing Twitch Client ID. Please configure it in .env first.");
+      return;
+    }
+    const redirectUri = window.location.origin;
+    const scopes = "chat:read chat:edit channel:read:hype_train channel:read:subscriptions";
+    const authUrl = `https://id.twitch.tv/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=${encodeURIComponent(scopes)}`;
+    window.location.href = authUrl;
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
@@ -76,15 +87,46 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
                 <div className="flex items-center gap-2 text-purple-400 font-black text-xs uppercase tracking-widest">
                   <Twitch size={16} /> Twitch Feed
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1">Channel Identifier</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. shroud"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-white placeholder:text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all font-medium"
-                    value={formData.twitchChannel}
-                    onChange={e => setFormData({ ...formData, twitchChannel: e.target.value })}
-                  />
+
+                {/* Connection Status / Logout */}
+                <div className="pt-2">
+                  <div className="flex items-center justify-between bg-slate-950/50 border border-slate-800 rounded-xl p-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-2 h-2 rounded-full ${formData.twitchAccessToken ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : import.meta.env.VITE_TWITCH_ACCESS_TOKEN ? 'bg-indigo-500' : 'bg-red-500'}`}></div>
+                      <div className="flex flex-col">
+                        <span className="text-white text-xs font-bold">
+                          {formData.twitchAccessToken
+                            ? `Connected as ${formData.twitchChannel || 'User'}`
+                            : import.meta.env.VITE_TWITCH_ACCESS_TOKEN
+                              ? 'Connected via Environment'
+                              : 'Not Connected'}
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          {formData.twitchAccessToken
+                            ? 'Using personal access token'
+                            : import.meta.env.VITE_TWITCH_ACCESS_TOKEN
+                              ? 'Using shared/env token'
+                              : 'Connect to start tracking chat'}
+                        </span>
+                      </div>
+                    </div>
+                    {formData.twitchAccessToken ? (
+                      <button
+                        onClick={() => setFormData({ ...formData, twitchAccessToken: '', twitchChannel: '' })}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all"
+                        title="Log out and clear stored token"
+                      >
+                        <LogOut size={12} /> Log Out
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleTwitchLogin}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#9146FF] hover:bg-[#7a2ce8] text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all shadow-lg shadow-purple-900/20 active:scale-95"
+                      >
+                        <LogIn size={12} /> Connect
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -211,81 +253,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
             </div>
           )}
 
-          {activeTab === 'api' && (
-            <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-300">
-              <div className="space-y-6">
-                <div className="flex items-center gap-2 text-indigo-400 font-black text-xs uppercase tracking-widest">
-                  <Key size={16} /> API & OAuth Keys
-                </div>
-
-                <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-6 space-y-6">
-                  {/* Twitch Credentials */}
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1 flex items-center justify-between">
-                        <span className="flex items-center gap-2">
-                          <Twitch size={12} className="text-purple-400" />
-                          Twitch Client ID
-                        </span>
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          placeholder="Client ID..."
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 pl-12 text-white focus:outline-none focus:border-indigo-500 transition-all font-mono text-sm"
-                          value={formData.twitchClientId || ''}
-                          onChange={e => setFormData({ ...formData, twitchClientId: e.target.value })}
-                        />
-                        <ShieldCheck size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1 flex items-center justify-between">
-                        <span className="flex items-center gap-2">
-                          <Twitch size={12} className="text-purple-400" />
-                          Twitch Access Token (Optional)
-                        </span>
-                        <a href="https://dev.twitch.tv/console/apps" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 transition-colors">Twitch Dev Console</a>
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="password"
-                          placeholder="oauth:..."
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 pl-12 text-white focus:outline-none focus:border-indigo-500 transition-all font-mono text-sm"
-                          value={formData.twitchAccessToken || ''}
-                          onChange={e => setFormData({ ...formData, twitchAccessToken: e.target.value })}
-                        />
-                        <Key size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* YouTube API Key */}
-                  <div className="space-y-2">
-                    <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider ml-1 flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        <Youtube size={12} className="text-red-500" />
-                        Google Data API Key
-                      </span>
-                      <a href="https://console.cloud.google.com/apis/credentials" target="_blank" className="text-indigo-400 hover:text-indigo-300 transition-colors">Google Cloud Console</a>
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="password"
-                        placeholder="AIza..."
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 pl-12 text-white focus:outline-none focus:border-indigo-500 transition-all font-mono text-sm"
-                        value={formData.youtubeApiKey}
-                        onChange={e => setFormData({ ...formData, youtubeApiKey: e.target.value })}
-                      />
-                      <Key size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {activeTab === 'dev' && (
             <div className="space-y-8 animate-in fade-in slide-in-from-left-4 duration-300">
               <div className="space-y-6">
@@ -311,7 +278,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ settings, currentQuota, o
                   <div className="flex items-center justify-between gap-6">
                     <div className="flex flex-col gap-1">
                       <span className="text-sm text-slate-200 font-black tracking-tight">Hype Train Simulation</span>
-                      <p className="text-[11px] text-slate-500 leading-relaxed">Trigger a fake Hype Train event (15s).</p>
+                      <p className="text-[11px] text-slate-500 leading-relaxed">Trigger a fake Hype Train event.</p>
                     </div>
                     {onSimulateHypeTrain && (
                       <button
