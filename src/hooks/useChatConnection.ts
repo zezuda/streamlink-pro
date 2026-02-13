@@ -66,6 +66,10 @@ export const useChatConnection = ({ settings, addMessage, updateStats, increment
                     // Only write if NOT in read-only mode (prevent Overlay from overwriting)
                     if (!readOnly) {
                         set(ref(db, 'hypeTrain'), hypeTrainData);
+                    } else {
+                        // If read-only (Overlay), update local state directly since we can't write to DB
+                        // This ensures Overlay works even if Dashboard is closed
+                        setHypeTrain(hypeTrainData);
                     }
                 },
                 settings.twitchAccessToken,

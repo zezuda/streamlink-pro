@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { ChatMessage, HypeTrainData } from '../types';
-import { Youtube, Twitch as TwitchIcon, Clock, DollarSign, Star, Zap } from 'lucide-react';
+import { Youtube, Twitch as TwitchIcon, Clock, DollarSign, Gift, Zap } from 'lucide-react';
 
 // Firebase imports from npm
 import { ref, onValue } from 'firebase/database';
@@ -154,7 +154,7 @@ const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage, hype
   if (!activeMsg && !isVisible && (!hypeTrain || !hypeTrain.isActive)) return null;
 
   const isTwitch = activeMsg?.platform === 'twitch';
-  let platformColor = isTwitch ? '#9146FF' : '#FF0000';
+  let platformColor = isTwitch ? '#9046ff' : '#FF0000';
 
   // Donation Logic for Styling
   const donationAmount = activeMsg?.donationAmount;
@@ -162,7 +162,7 @@ const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage, hype
   const isSubscription = activeMsg?.eventType === 'subscription';
 
   if (isSubscription) {
-    platformColor = '#a855f7'; // Purple-500 for subs
+    platformColor = '#a855f77a'; // Purple-500 for subs
   }
 
   if (isDonation) {
@@ -208,7 +208,6 @@ const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage, hype
                 ) : (
                   <svg className="w-4 h-4 text-white fill-current" viewBox="0 0 24 24" fill="none"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z" fill="white" /><path d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="#FF0000" /></svg>
                 )}
-                {isSubscription && <Star className="w-4 h-4 text-white fill-current absolute animate-spin-slow" />}
               </div>
 
               <span
@@ -228,7 +227,7 @@ const Overlay: React.FC<OverlayProps> = ({ featuredMessage: initialMessage, hype
 
               {isSubscription && activeMsg?.subscription && (
                 <span className="ml-auto flex items-center gap-2 px-4 py-1.5 rounded-full bg-black/20 border border-white/10 text-white font-black text-xl tracking-widest shadow-lg">
-                  <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                  <Gift className="w-6 h-6 text-yellow-400" />
                   {activeMsg.subscription.months && activeMsg.subscription.months > 1 ? `${activeMsg.subscription.months} MONTHS` : 'SUBSCRIBER'}
                 </span>
               )}
