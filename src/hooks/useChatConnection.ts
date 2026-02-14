@@ -79,6 +79,16 @@ export const useChatConnection = ({ settings, addMessage, updateStats, increment
                         status: status as any,
                         errorMessage: error
                     });
+                },
+                (category, message) => {
+                    // Debug Logging to Firebase
+                    const logRef = ref(db, `debug_logs/hype_train/${Date.now()}`);
+                    set(logRef, {
+                        timestamp: new Date().toISOString(),
+                        category,
+                        message,
+                        readOnly
+                    });
                 }
             );
             twitchClient.current.connect();

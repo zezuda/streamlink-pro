@@ -18,6 +18,9 @@ export class TwitchChatClient {
   private maxReconnectAttempts = 10;
   private isDisconnecting = false;
 
+  private logDebug?: (category: string, message: string) => void;
+  private lastLogMessage: string | null = null; // Prevent spamming duplicate logs
+
   constructor(
     channel: string,
     onMessage: (msg: ChatMessage) => void,
@@ -25,7 +28,8 @@ export class TwitchChatClient {
     onHypeTrainUpdate?: (hypeTrain: HypeTrainData | null) => void,
     accessToken?: string,
     clientId?: string,
-    onStatusChange?: (status: 'online' | 'error' | 'connecting', error?: string) => void
+    onStatusChange?: (status: 'online' | 'error' | 'connecting', error?: string) => void,
+    logDebug?: (category: string, message: string) => void
   ) {
     this.channel = channel.toLowerCase();
     this.onMessage = onMessage;
@@ -34,6 +38,14 @@ export class TwitchChatClient {
     this.accessToken = accessToken;
     this.clientId = clientId;
     this.onStatusChange = onStatusChange;
+    // WRAP logDebug to filter duplicates
+    this.logDebug = logDebug ? (category, message) => {
+      const key = `${category}:${message}`;
+      if (this.lastLogMessage !== key) {
+        this.lastLogMessage = key;
+        logDebug(category, message);
+      }
+    } : undefined;
   }
 
   connect() {
@@ -170,6 +182,7 @@ export class TwitchChatClient {
       }
 
       if (!broadcasterId) {
+        if (this.logDebug) this.logDebug('HypeTrain', 'Could not resolve broadcaster ID from channel name.');
         this.hypeTrainTimer = setTimeout(() => this.pollHypeTrain(), 60000);
         return;
       }
@@ -183,6 +196,7 @@ export class TwitchChatClient {
       });
 
       if (!resp.ok) {
+        if (this.logDebug) this.logDebug('HypeTrain', `API Error: ${resp.status} ${resp.statusText}`);
         if (resp.status === 401 || resp.status === 403) {
           console.warn("Twitch Hype Train 401/403: Missing scope channel:read:hype_train?");
           if (this.onStatusChange) this.onStatusChange('error', "Hype Train: Missing 'channel:read:hype_train' scope.");
@@ -196,7 +210,10 @@ export class TwitchChatClient {
 
       const data = await resp.json();
 
+      let nextPollDelay = 60000;
+
       if (!data.data || data.data.length === 0) {
+        if (this.logDebug) this.logDebug('HypeTrain', 'Polled: No active Hype Train.');
         this.onHypeTrainUpdate(null);
       } else {
         const train = data.data[0];
@@ -204,6 +221,8 @@ export class TwitchChatClient {
         const now = Date.now();
 
         if (expiresAt > now) {
+          if (this.logDebug) this.logDebug('HypeTrain', `Active Train Found: Level ${train.level}, ${Math.floor((train.progress / train.goal) * 100)}%`);
+
           this.onHypeTrainUpdate({
             id: train.id,
             level: train.level,
@@ -213,13 +232,17 @@ export class TwitchChatClient {
             isActive: true,
             expiryDate: new Date(train.expires_at)
           });
+          nextPollDelay = 10000; // Poll faster when active
         } else {
+          if (this.logDebug) this.logDebug('HypeTrain', 'Train found but expired. Waiting...');
           this.onHypeTrainUpdate(null);
+          // Keep default 60s delay for expired trains
         }
       }
 
-      this.hypeTrainTimer = setTimeout(() => this.pollHypeTrain(), 10000);
-    } catch (e) {
+      this.hypeTrainTimer = setTimeout(() => this.pollHypeTrain(), nextPollDelay);
+    } catch (e: any) {
+      if (this.logDebug) this.logDebug('HypeTrain', `Exception during poll: ${e.message}`);
       this.hypeTrainTimer = setTimeout(() => this.pollHypeTrain(), 30000);
     }
   }
